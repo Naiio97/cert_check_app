@@ -82,7 +82,7 @@ def upravit_certifikat(id):
                          certifikat=certifikat,
                          servery=servery)
 
-@bp.route('/smazat/<int:id>')
+@bp.route('/smazat/<int:id>', methods=['POST'])
 def smazat_certifikat(id):
     try:
         certifikat = Certifikat.query.get_or_404(id)
@@ -119,8 +119,8 @@ def import_excel():
         df = pd.read_excel(filepath)
         
         # Zpracování dat z Excelu
-        df['Server'] = df['Server'].fillna(method='ffill')
-        df['Cesta'] = df['Cesta'].fillna(method='ffill')
+        df['Server'] = df['Server'].ffill()
+        df['Cesta'] = df['Cesta'].ffill()
         df['Název certifikátu'] = df['Název certifikátu'].fillna('Neznámý certifikát')
         
         df = df.dropna(subset=['Server'])
@@ -302,7 +302,7 @@ def export_excel():
         flash(f'Chyba při exportu do Excelu: {str(e)}', 'error')
         return redirect(url_for('main.index'))
 
-@bp.route('/smazat-vse')
+@bp.route('/smazat-vse', methods=['POST'])
 def smazat_vse():
     try:
         # Smazat pouze v aktivním prostředí (live/test)

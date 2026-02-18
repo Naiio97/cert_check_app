@@ -108,9 +108,11 @@
                 <div class="modal-body">
                     <p>Tato akce je nevratná a odstraní všechny certifikáty pouze v aktuálním prostředí <strong id=\"env-label\"></strong>.</p>
                 </div>
-                <div class="modal-footer">
+            <div class="modal-footer">
                     <button class="button secondary" onclick="this.closest('.modal').remove()">Zrušit</button>
-                    <a class="button danger" href="/evidence_certifikatu/smazat-vse">Smazat</a>
+                    <form action="/evidence_certifikatu/smazat-vse" method="POST" style="display:inline">
+                        <button type="submit" class="button danger">Smazat</button>
+                    </form>
                 </div>
             </div>`;
         document.body.appendChild(modal);

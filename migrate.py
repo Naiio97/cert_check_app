@@ -1,5 +1,5 @@
-from app import app, db
-from models import Server, Certifikat
+from app import create_app, db
+from app.models import Server, Certifikat
 import sqlite3
 
 def migrate_database():
