@@ -347,11 +347,24 @@ async function handleServerEdit(event, id) {
 
 function smazatServer(id) {
     if (confirm('Opravdu chcete smazat tento server?')) {
-        fetch(`/smazat-server/${id}`)
+        fetch(`/evidence_certifikatu/servery/smazat/${id}`, { method: 'POST' })
             .then(response => {
-                if (response.ok) {
+                if (response.ok || response.redirected) {
                     window.location.reload();
                 }
             });
     }
-} 
+}
+
+/* ─── Fulltext search ─── */
+function filterTable(query) {
+    const tbody = document.querySelector('.table-container tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    const q = query.toLowerCase().trim();
+    rows.forEach(row => {
+        if (!q) { row.style.display = ''; return; }
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}

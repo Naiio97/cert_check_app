@@ -34,7 +34,8 @@
 
 <!-- Import formulář -->
 <div id="importForm" class="import-form" style="display: none;">
-    <form method="POST" action="{{ url_for('certificates.import_excel') }}" enctype="multipart/form-data" onsubmit="handleImport(event)">
+    <form method="POST" action="{{ url_for('certificates.import_excel') }}" enctype="multipart/form-data"
+        onsubmit="handleImport(event)">
         <div class="inline-form">
             <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
             <button type="submit" class="button primary">
@@ -46,15 +47,19 @@
 </div>
 
 <!-- Navigace serverů -->
-    <div class="nav-list">
-        {% for server in servery %}
-        <a href="#" 
-           data-server="{{ server }}" 
-           class="nav-item {% if server == aktivni_server %}active{% endif %}">
-            {{ server }}
-        </a>
-        {% endfor %}
-    </div>
+<div class="nav-list">
+    {% for server in servery %}
+    <a href="#" data-server="{{ server }}" class="nav-item {% if server == aktivni_server %}active{% endif %}">
+        {{ server }}
+    </a>
+    {% endfor %}
+</div>
+<!-- Search bar -->
+<div class="search-bar">
+    <i class="fas fa-search"></i>
+    <input type="text" id="searchInput" placeholder="Hledat certifikát (název, server, cesta…)"
+        oninput="filterTable(this.value)">
+</div>
 
 <!-- Tabulka certifikátů -->
 <div class="table-container">
@@ -100,31 +105,31 @@
 </div>
 
 <script>
-function upravitCertifikat(id) {
-    fetch(`/evidence_certifikatu/get-edit-form/${id}`)
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#detailModal .modal-content').innerHTML = html;
-            openModal('detailModal');
-        });
-}
+    function upravitCertifikat(id) {
+        fetch(`/evidence_certifikatu/get-edit-form/${id}`)
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#detailModal .modal-content').innerHTML = html;
+                openModal('detailModal');
+            });
+    }
 
-function zobrazitDetail(id) {
-    fetch(`/evidence_certifikatu/detail/${id}`)
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#detailModal .modal-content').innerHTML = html;
-            openModal('detailModal');
-        });
-}
+    function zobrazitDetail(id) {
+        fetch(`/evidence_certifikatu/detail/${id}`)
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#detailModal .modal-content').innerHTML = html;
+                openModal('detailModal');
+            });
+    }
 
-function pridatCertifikat() {
-    fetch('/evidence_certifikatu/pridat-novy')
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#modal .modal-content').innerHTML = html;
-            openModal('modal');
-        });
-}
+    function pridatCertifikat() {
+        fetch('/evidence_certifikatu/pridat-novy')
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#modal .modal-content').innerHTML = html;
+                openModal('modal');
+            });
+    }
 </script>
-{% endblock %} 
+{% endblock %}

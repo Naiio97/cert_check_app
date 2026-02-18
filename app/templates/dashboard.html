@@ -6,13 +6,10 @@
 <div class="dashboard">
     <div class="header">
         <h1>Končící certifikáty</h1>
-        <div class="toolbar" style="display: flex; justify-content: space-between;">
-            <div></div>
-            <a href="{{ url_for('main.index') }}" class="button info">
-                <i class="fas fa-arrow-left"></i>
-                Zpět na přehled
-            </a>
-        </div>
+        <a href="{{ url_for('main.index') }}" class="button info">
+            <i class="fas fa-arrow-left"></i>
+            Zpět na přehled
+        </a>
     </div>
 
     <!-- Statistiky -->
@@ -49,7 +46,8 @@
     </div>
 
     <!-- Tabulka končících certifikátů -->
-        <h2>Končící certifikáty</h2>
+    <div class="table-container">
+        <h2 style="padding: 16px 16px 0;">Končící certifikáty</h2>
         <table>
             <thead>
                 <tr>
@@ -72,5 +70,6 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
 </div>
-{% endblock %} 
+{% endblock %}

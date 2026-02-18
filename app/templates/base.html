@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Správa certifikátů{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.3">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/flatpickr.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body class="env-{{ current_env }}">
     <header class="app-header">
         <div class="brand">
@@ -23,11 +26,13 @@
                 <i class="fas fa-table"></i>
                 Přehled
             </a>
-            <a href="{{ url_for('dashboard.index') }}" class="{% if request.blueprint == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard.index') }}"
+                class="{% if request.blueprint == 'dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-bar"></i>
-                Dashboard
+                Končící certifikáty
             </a>
-            <a href="{{ url_for('servers.seznam_serveru') }}" class="{% if request.blueprint == 'servers' %}active{% endif %}">
+            <a href="{{ url_for('servers.seznam_serveru') }}"
+                class="{% if request.blueprint == 'servers' %}active{% endif %}">
                 <i class="fas fa-server"></i>
                 Servery
             </a>
@@ -66,40 +71,62 @@
     <main class="app-main">
         <div class="container">
             {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="flash-message">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
-            
+
+            <!-- Toast notification container -->
+            <div class="toast-container" id="toast-container"></div>
+
             {% block content %}{% endblock %}
         </div>
     </main>
-    
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=3.1"></script>
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
     <script>
-    // Dropdown menu
-    document.addEventListener('click', function(e){
-        const more = document.querySelector('.menu-more');
-        if(!more) return;
-        const btn = more.querySelector('.menu-button');
-        const menu = more.querySelector('.menu-dropdown');
-        if(btn.contains(e.target)){
-            const open = menu.classList.toggle('open');
-            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        } else if(!menu.contains(e.target)){
-            menu.classList.remove('open');
-            btn.setAttribute('aria-expanded', 'false');
+        /* ─── Toast System ─── */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }, 4000);
         }
-    });
 
-    // Delete DB modal
-    function openDeleteDbModal(){
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
+        // Convert flash messages to toasts on load
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.flash-message').forEach(el => {
+                showToast(el.textContent, 'info');
+                el.remove();
+            });
+        });
+        // Dropdown menu
+        document.addEventListener('click', function (e) {
+            const more = document.querySelector('.menu-more');
+            if (!more) return;
+            const btn = more.querySelector('.menu-button');
+            const menu = more.querySelector('.menu-dropdown');
+            if (btn.contains(e.target)) {
+                const open = menu.classList.toggle('open');
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            } else if (!menu.contains(e.target)) {
+                menu.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Delete DB modal
+        function openDeleteDbModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Opravdu smazat databázi?</h2>
@@ -115,48 +142,49 @@
                     </form>
                 </div>
             </div>`;
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        // doplníme label prostředí
-        try {
-            const m = document.cookie.match(/(?:^|; )env=([^;]+)/);
-            const env = m ? decodeURIComponent(m[1]) : 'live';
-            document.getElementById('env-label').textContent = env.toUpperCase();
-        } catch(e){}
-    }
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            // doplníme label prostředí
+            try {
+                const m = document.cookie.match(/(?:^|; )env=([^;]+)/);
+                const env = m ? decodeURIComponent(m[1]) : 'live';
+                document.getElementById('env-label').textContent = env.toUpperCase();
+            } catch (e) { }
+        }
 
-    // Force světly režim (žádné automatické přepínání)
-    (function(){
-        try {
-            document.documentElement.classList.remove('theme-dark');
-            const saved = localStorage.getItem('theme');
-            if (saved === 'dark') localStorage.setItem('theme', 'light');
-        } catch(e){}
-    })();
+        // Force světly režim (žádné automatické přepínání)
+        (function () {
+            try {
+                document.documentElement.classList.remove('theme-dark');
+                const saved = localStorage.getItem('theme');
+                if (saved === 'dark') localStorage.setItem('theme', 'light');
+            } catch (e) { }
+        })();
 
-    // Env switcher
-    (function(){
-        const buttons = document.querySelectorAll('.env-btn');
-        if (!buttons.length) return;
-        // zvýraznit aktivní
-        const active = (document.cookie.match(/(?:^|; )env=([^;]+)/)||[])[1] || 'live';
-        buttons.forEach(b=>{
-            if(b.dataset.env === decodeURIComponent(active)) b.classList.add('active');
-            b.addEventListener('click', ()=>{
-                const env = b.dataset.env;
-                document.cookie = `env=${env}; Path=/; SameSite=Lax`;
-                window.location.reload();
+        // Env switcher
+        (function () {
+            const buttons = document.querySelectorAll('.env-btn');
+            if (!buttons.length) return;
+            // zvýraznit aktivní
+            const active = (document.cookie.match(/(?:^|; )env=([^;]+)/) || [])[1] || 'live';
+            buttons.forEach(b => {
+                if (b.dataset.env === decodeURIComponent(active)) b.classList.add('active');
+                b.addEventListener('click', () => {
+                    const env = b.dataset.env;
+                    document.cookie = `env=${env}; Path=/; SameSite=Lax`;
+                    window.location.reload();
+                });
             });
-        });
-    })();
+        })();
 
-    // Manual send report
-    function sendReportNow(){
-        fetch('/evidence_certifikatu/send-report', {method:'POST'})
-            .then(r=>r.json())
-            .then(d=>{ alert(d.message || 'Hotovo'); })
-            .catch(()=>alert('Chyba při odeslání reportu'))
-    }
+        // Manual send report
+        function sendReportNow() {
+            fetch('/evidence_certifikatu/send-report', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { showToast(d.message || 'Report odeslán', 'success'); })
+                .catch(() => showToast('Chyba při odeslání reportu', 'error'))
+        }
     </script>
 </body>
-</html> 
+
+</html>
