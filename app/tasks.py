@@ -10,6 +10,9 @@ import smtplib
 import ssl
 import calendar
 
+from app.models import Settings, Certifikat
+from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html
+
 def _engine(env: str):
     # Flask-SQLAlchemy 3.2+: používejte db.engines[bind]
     try:
@@ -18,33 +21,45 @@ def _engine(env: str):
         return db.get_engine(current_app, bind=env)
 
 
-def _fetch_expiring(env: str, days: int = 60):
-    """Vrátí list záznamů z tabulky certifikat pro dané prostředí do N dnů."""
-    today = date.today()
-    with _engine(env).begin() as conn:
-        rows = conn.execute(
-            text(
-                """
-                SELECT server, cesta, nazev, expirace
-                FROM certifikat
-                WHERE date(expirace) <= date(:today, :plus)
-                ORDER BY expirace ASC
-                """
-            ),
-            {"today": today.isoformat(), "plus": f"+{days} day"},
-        ).mappings().all()
-    return rows
-
-
-def _send_email(subject: str, text_body: str, html_body: str | None = None):
+def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
+    """Odešle email. Konfigurace: DB Settings > .env Config."""
     cfg = current_app.config
-    username = cfg.get("MAIL_USERNAME") or None
-    password = cfg.get("MAIL_PASSWORD") or None
-    recipients_raw = cfg.get("MAIL_RECIPIENTS")
-    if not recipients_raw:
-        current_app.logger.warning("MAIL_RECIPIENTS není nastaveno; e-mail neodeslán")
-        return
-    recipients = [r.strip() for r in recipients_raw.split(",") if r.strip()]
+
+    # Načtení konfigurace (Priorita: DB > ENV)
+    db_server = Settings.get('mail_server')
+    db_port = Settings.get('mail_port')
+    db_tls = Settings.get('mail_use_tls')  # 'True'/'False'/None
+    db_user = Settings.get('mail_username')
+    db_pass = Settings.get('mail_password')
+    db_sender = Settings.get('mail_sender_address')
+
+    server_host = db_server if db_server else cfg.get("MAIL_SERVER", "localhost")
+    try:
+        server_port = int(db_port) if db_port else int(cfg.get("MAIL_PORT", 25))
+    except ValueError:
+        server_port = 25
+
+    if db_tls is not None:
+        use_tls = (db_tls == 'True')
+    else:
+        use_tls = cfg.get("MAIL_USE_TLS")
+        if isinstance(use_tls, str):
+            use_tls = use_tls.lower() == 'true'
+        elif not isinstance(use_tls, bool):
+            use_tls = False
+
+    username = db_user if db_user else cfg.get("MAIL_USERNAME")
+    password = db_pass if db_pass else cfg.get("MAIL_PASSWORD")
+    sender_addr = db_sender if db_sender else cfg.get("MAIL_SENDER_ADDRESS") or "noreply@example.com"
+    sender_name = cfg.get("MAIL_SENDER_NAME") # Sender name stays in env for now? Or derived?
+
+    if not recipients:
+        recipients_raw = cfg.get("MAIL_RECIPIENTS")
+        if not recipients_raw:
+            current_app.logger.warning("MAIL_RECIPIENTS není nastaveno; e-mail neodeslán")
+            return
+        recipients = [r.strip() for r in recipients_raw.split(",") if r.strip()]
+
     if html_body:
         msg = MIMEMultipart('alternative')
         part_text = MIMEText(text_body, 'plain', _charset='utf-8')
@@ -53,133 +68,82 @@ def _send_email(subject: str, text_body: str, html_body: str | None = None):
         msg.attach(part_html)
     else:
         msg = MIMEText(text_body, _charset="utf-8")
+
     subject_prefix = cfg.get("MAIL_SUBJECT_PREFIX", "")
     msg["Subject"] = f"{subject_prefix} {subject}".strip()
-    sender_addr = cfg.get("MAIL_SENDER_ADDRESS") or username or "noreply@example.com"
-    sender_name = cfg.get("MAIL_SENDER_NAME")
     msg["From"] = f"{sender_name} <{sender_addr}>" if sender_name else sender_addr
     msg["To"] = ", ".join(recipients)
+
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(cfg.get("MAIL_SERVER", "localhost"), cfg.get("MAIL_PORT", 25)) as server:
-            if cfg.get("MAIL_USE_TLS", False):
+        # Pokud je localhost a port 25, často bez TLS/Auth.
+        # Ale respektujeme nastavení.
+        with smtplib.SMTP(server_host, server_port) as server:
+            # EHLO/HELO
+            server.ehlo()
+            if use_tls:
                 server.starttls(context=context)
-            if cfg.get("MAIL_SMTP_AUTH", False) and username and password:
+                server.ehlo()
+            
+            if username and password:
                 server.login(username, password)
+            
             server.sendmail(sender_addr, recipients, msg.as_string())
-        current_app.logger.info("E-mail odeslán: %s", subject)
+        
+        current_app.logger.info("E-mail odeslán: %s (Server: %s:%d)", subject, server_host, server_port)
     except Exception as e:
-        current_app.logger.error("Chyba při odesílání e-mailu: %s", e)
-
-
-def _format_date(value) -> date:
-    if isinstance(value, date):
-        return value
-    try:
-        return date.fromisoformat(str(value))
-    except Exception:
-        # fallback: try parse common formats
-        try:
-            return datetime.strptime(str(value), '%Y-%m-%d').date()
-        except Exception:
-            return date.today()
-
-
-_CZ_MONTHS = [
-    "leden", "únor", "březen", "duben", "květen", "červen",
-    "červenec", "srpen", "září", "říjen", "listopad", "prosinec"
-]
-
-
-def _cz_month_name(dt: date) -> str:
-    try:
-        name = _CZ_MONTHS[dt.month - 1]
-        # První písmeno velké
-        return name[:1].upper() + name[1:]
-    except Exception:
-        return str(dt.month)
-
-
-def _build_rows_html(rows: list[dict], today: date) -> str:
-    # jednoduché inline CSS pro kompatibilitu v e-mailových klientech
-    table_head = (
-        '<table role="table" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:14px">'
-        '<thead><tr style="background:#f4f6f8;color:#111;">'
-        '<th align="left" style="border-bottom:1px solid #ddd">Server</th>'
-        '<th align="left" style="border-bottom:1px solid #ddd">Cesta</th>'
-        '<th align="left" style="border-bottom:1px solid #ddd">Název</th>'
-        '<th align="left" style="border-bottom:1px solid #ddd">Expirace</th>'
-        '<th align="right" style="border-bottom:1px solid #ddd">Zbývá dnů</th>'
-        '</tr></thead><tbody>'
-    )
-    body_rows = []
-    for r in rows:
-        exp = _format_date(r["expirace"]) if "expirace" in r else _format_date(r.get("EXPIRACE"))
-        left = (exp - today).days
-        critical = left <= 30
-        row_bg = '#fff6f6' if critical else '#ffffff'
-        row_style = f'background:{row_bg};'
-        td_style = 'border-bottom:1px solid #eee;vertical-align:top;'
-        body_rows.append(
-            '<tr style="%s">%s%s%s%s%s</tr>' % (
-                row_style,
-                f'<td style="{td_style}">{r.get("server", "")}</td>',
-                f'<td style="{td_style}">{r.get("cesta", "")}</td>',
-                f'<td style="{td_style}">{r.get("nazev", "")}</td>',
-                f'<td style="{td_style}">{exp.strftime("%d.%m.%Y")}</td>',
-                f'<td align="right" style="{td_style}"><strong>{left}</strong></td>',
-            )
-        )
-    table_tail = '</tbody></table>'
-    return table_head + ''.join(body_rows) + table_tail
-
-
-def _wrap_email_html(title: str, sections: list[tuple[str, str]], title_color: str = '#111'):
-    # sections: list of (headline, html_table)
-    parts = [
-        '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#fafbfc">',
-        f'<div style="max-width:900px;margin:0 auto;background:#ffffff;border:1px solid #e6e8eb;border-radius:8px;overflow:hidden">',
-        f'<div style="padding:16px 20px;background:#ffffff;border-bottom:1px solid #e6e8eb;font-family:Arial,Helvetica,sans-serif">'
-        f'<h2 style="margin:0;font-size:18px;color:{title_color}">{title}</h2></div>',
-        '<div style="padding:16px 20px">'
-    ]
-    for headline, table_html in sections:
-        parts.append(f'<h3 style="font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#111;margin:16px 0 8px">{headline}</h3>')
-        parts.append(table_html)
-    parts.append('</div></div>')
-    parts.append('<div style="text-align:center;color:#888;font-size:12px;font-family:Arial,Helvetica,sans-serif;margin-top:8px">Automatická zpráva – prosím neodpovídejte.</div>')
-    parts.append('</body></html>')
-    return ''.join(parts)
+        current_app.logger.error("Chyba při odesílání e-mailu (%s:%d): %s", server_host, server_port, e)
 
 
 def send_daily_certificate_alert(env: str):
-    """Odešle denní upozornění o certifikátech končících do 60 dnů pro dané prostředí."""
+    """Odešle denní upozornění o certifikátech – thresholds z DB."""
     try:
-        rows = _fetch_expiring(env, days=60)
+        critical_days = int(Settings.get('alert_days_critical', '30'))
+        warning_days = int(Settings.get('alert_days_warning', '60'))
+
+        rows = Certifikat.fetch_expiring(env, days=warning_days)
         if not rows:
-            current_app.logger.info("[%s] Žádné končící certifikáty do 60 dnů", env)
+            current_app.logger.info("[%s] Žádné končící certifikáty do %d dnů", env, warning_days)
             return
         today = date.today()
-        critical = [r for r in rows if (_format_date(r["expirace"]) - today).days <= 30]
+        critical = [r for r in rows if (format_date(r["expirace"]) - today).days <= critical_days]
+        warning = [r for r in rows if critical_days < (format_date(r["expirace"]) - today).days <= warning_days]
         # Plain text
-        lines = [f"Seznam certifikátů končících do 60 dnů ({env.upper()}):", ""]
+        lines = [f"Seznam certifikátů končících do {warning_days} dnů ({env.upper()}):", ""]
         for r in rows:
-            exp = _format_date(r["expirace"]) 
+            exp = format_date(r["expirace"])
             left = (exp - today).days
-            mark = "! " if left <= 30 else ""
+            mark = "! " if left <= critical_days else ""
             lines.append(f"{mark}{r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
         text_body = "\n".join(lines)
 
         # HTML
-        table_html = _build_rows_html(rows, today)
-        html = _wrap_email_html(
-            title=f"[{env.upper()}] Končící certifikáty do 60 dnů",
-            sections=[(f"Kritické: {len(critical)}", table_html)]
+        table_html = build_rows_html(rows, today, critical_days)
+        stats = {'critical': len(critical), 'warning': len(warning), 'total': len(rows)}
+        env_upper = env.upper()
+        title_color = '#dc2626' if env_upper == 'LIVE' else '#16a34a'
+        html = wrap_email_html(
+            title=f"[{env_upper}] Končící certifikáty do {warning_days} dnů",
+            sections=[(f"Certifikáty ({len(rows)})", table_html)],
+            title_color=title_color,
+            stats=stats
         )
-        subject = f"[{env.upper()}] Končící certifikáty do 60 dnů (kritické: {len(critical)})"
+        subject = f"[{env_upper}] Končící certifikáty do {warning_days} dnů (kritické: {len(critical)})"
         _send_email(subject, text_body, html)
     except Exception as e:
         current_app.logger.error("Chyba alertu pro %s: %s", env, e)
+
+def send_test_email(to_email: str):
+    """Odešle testovací email na zadanou adresu."""
+    subject = "Test nastavení emailu"
+    text_body = "Toto je testovací zpráva pro ověření funkčnosti SMTP serveru."
+    html_body = wrap_email_html(
+        title="Test nastavení emailu",
+        sections=[("Výsledek", "<p style='color: #16a34a; font-weight: bold;'>SMTP spojení je funkční.</p>")],
+        title_color="#3b82f6",
+        stats={'total': 1, 'critical': 0, 'warning': 0}
+    )
+    _send_email(subject, text_body, html_body, recipients=[to_email])
 
 def send_monthly_certificate_report(env: str):
     """Odešle report pro aktuální i následující měsíc."""
@@ -195,68 +159,62 @@ def send_monthly_certificate_report(env: str):
     next_start = date(next_year, next_month, 1)
     next_end = date(next_year, next_month, last_day_next)
     try:
-        with _engine(env).begin() as conn:
-            rows_cur = conn.execute(
-                    text(
-                        """
-                        SELECT server, cesta, nazev, expirace
-                        FROM certifikat
-                        WHERE date(expirace) BETWEEN date(:start) AND date(:end)
-                        ORDER BY expirace
-                        """
-                    ),
-                    {"start": cur_start.isoformat(), "end": cur_end.isoformat()},
-            ).mappings().all()
-            rows_next = conn.execute(
-                    text(
-                        """
-                        SELECT server, cesta, nazev, expirace
-                        FROM certifikat
-                        WHERE date(expirace) BETWEEN date(:start) AND date(:end)
-                        ORDER BY expirace
-                        """
-                    ),
-                    {"start": next_start.isoformat(), "end": next_end.isoformat()},
-            ).mappings().all()
-        if rows_cur or rows_next:
-                # Textová verze
-                lines = [f"Report končících certifikátů ({env.upper()}):", ""]
-                lines.append(f"Aktuální měsíc ({today.month}.{today.year}):")
-                if rows_cur:
-                    for r in rows_cur:
-                        exp = _format_date(r["expirace"]) 
-                        left = (exp - today).days
-                        lines.append(f"- {r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
-                else:
-                    lines.append("- žádné položky")
-                lines.append("")
-                lines.append(f"Následující měsíc ({next_month}.{next_year}):")
-                if rows_next:
-                    for r in rows_next:
-                        exp = _format_date(r["expirace"]) 
-                        left = (exp - today).days
-                        lines.append(f"- {r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
-                else:
-                    lines.append("- žádné položky")
-                text_body = "\n".join(lines)
+        rows_cur = Certifikat.fetch_between(env, cur_start, cur_end)
+        rows_next = Certifikat.fetch_between(env, next_start, next_end)
 
-                # HTML verze – dvě tabulky
-                sections = []
-                cur_table = _build_rows_html(rows_cur, today) if rows_cur else '<p style="font-family:Arial,Helvetica,sans-serif">Žádné položky</p>'
-                next_table = _build_rows_html(rows_next, today) if rows_next else '<p style="font-family:Arial,Helvetica,sans-serif">Žádné položky</p>'
-                sections.append((_cz_month_name(today), cur_table))
-                sections.append((_cz_month_name(date(next_year, next_month, 1)), next_table))
-                env_upper = env.upper()
-                # Barvy hlavičky podle prostředí: LIVE = červená, TEST/UAT = zelená
-                title_color = '#d92d20' if env_upper == 'LIVE' else '#147d14'
-                html_body = _wrap_email_html(f"[{env_upper}] Měsíční report končících certifikátů", sections, title_color=title_color)
-
-                _send_email(f"[{env.upper()}] Měsíční report (aktuální + další měsíc)", text_body, html_body)
-                current_app.logger.info(
-                    "Report odeslán pro %s (aktuální: %d, další: %d)", env, len(rows_cur), len(rows_next)
-                )
+        # Vždy odeslat report (i prázdný)
+        # Textová verze
+        lines = [f"Report končících certifikátů ({env.upper()}):", ""]
+        lines.append(f"Aktuální měsíc ({today.month}.{today.year}):")
+        if rows_cur:
+            for r in rows_cur:
+                exp = format_date(r["expirace"]) 
+                left = (exp - today).days
+                lines.append(f"- {r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
         else:
-            current_app.logger.info("Měsíční report: žádné certifikáty (%s)", env)
+            lines.append("- žádné položky")
+        lines.append("")
+        lines.append(f"Následující měsíc ({next_month}.{next_year}):")
+        if rows_next:
+            for r in rows_next:
+                exp = format_date(r["expirace"]) 
+                left = (exp - today).days
+                lines.append(f"- {r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
+        else:
+            lines.append("- žádné položky")
+        
+        # Pokud je vše prázdné, přidáme pozitivní zprávu
+        if not rows_cur and not rows_next:
+            lines.append("")
+            lines.append("Vše v pořádku, žádné certifikáty neexpirují.")
+
+        text_body = "\n".join(lines)
+
+        # HTML verze – dvě tabulky
+        critical_days = int(Settings.get('alert_days_critical', '30'))
+        sections = []
+        cur_table = build_rows_html(rows_cur, today, critical_days) if rows_cur else '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
+        next_table = build_rows_html(rows_next, today, critical_days) if rows_next else '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
+        sections.append((cz_month_name(today), cur_table))
+        sections.append((cz_month_name(date(next_year, next_month, 1)), next_table))
+        
+        env_upper = env.upper()
+        # Barvy hlavičky podle prostředí: LIVE = červená, TEST/UAT = zelená
+        title_color = '#dc2626' if env_upper == 'LIVE' else '#16a34a'
+        stats = {'critical': len(rows_cur), 'warning': len(rows_next), 'total': len(rows_cur) + len(rows_next)}
+        
+        html_body = wrap_email_html(
+            f"[{env_upper}] Měsíční report končících certifikátů",
+            sections,
+            title_color=title_color,
+            stats=stats
+        )
+
+        _send_email(f"[{env.upper()}] Měsíční report (aktuální + další měsíc)", text_body, html_body)
+        current_app.logger.info(
+            "Report odeslán pro %s (aktuální: %d, další: %d)", env, len(rows_cur), len(rows_next)
+        )
+
     except Exception as e:
         current_app.logger.error("Chyba při generování měsíčního reportu (%s): %s", env, e)
 
@@ -322,6 +280,7 @@ def init_scheduler(app):
             replace_existing=True,
             coalesce=True,
             max_instances=1,
+            misfire_grace_time=3600,
             day=month_day,
             hour=adj_hour,
             minute=adj_minute,

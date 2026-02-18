@@ -62,65 +62,70 @@
 
 <!-- JavaScript pro správu serverů -->
 <script>
-function pridatServer() {
-    fetch('/evidence_certifikatu/servery/pridat')
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#serverModal .modal-content').innerHTML = html;
-            openModal('serverModal');
-        });
-}
-
-function zobrazitServerDetail(id) {
-    fetch(`/evidence_certifikatu/servery/detail/${id}`)
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#serverModal .modal-content').innerHTML = html;
-            openModal('serverModal');
-        });
-}
-
-function upravitServer(id) {
-    fetch(`/evidence_certifikatu/servery/upravit/${id}`)
-        .then(response => response.text())
-        .then(html => {
-            document.querySelector('#serverModal .modal-content').innerHTML = html;
-            openModal('serverModal');
-        });
-}
-
-function smazatServer(id) {
-    if (confirm('Opravdu chcete smazat tento server? Budou smazány i všechny jeho certifikáty.')) {
-        window.location.href = `/evidence_certifikatu/servery/smazat/${id}`;
+    function pridatServer() {
+        fetch('/evidence_certifikatu/servery/pridat')
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#serverModal .modal-content').innerHTML = html;
+                openModal('serverModal');
+            });
     }
-}
 
-function handleServerEdit(event, id) {
-    event.preventDefault();
-    console.log('Odesílám formulář s ID: ' + id);
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    const url = id ? `/evidence_certifikatu/servery/upravit/${id}` : '/evidence_certifikatu/servery/pridat';
-    
-    fetch(url, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal('serverModal');
-            window.location.reload();
-        } else {
-            alert(data.message || 'Došlo k chybě při ukládání serveru');
+    function zobrazitServerDetail(id) {
+        fetch(`/evidence_certifikatu/servery/detail/${id}`)
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#serverModal .modal-content').innerHTML = html;
+                openModal('serverModal');
+            });
+    }
+
+    function upravitServer(id) {
+        fetch(`/evidence_certifikatu/servery/upravit/${id}`)
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#serverModal .modal-content').innerHTML = html;
+                openModal('serverModal');
+            });
+    }
+
+    function smazatServer(id) {
+        if (confirm('Opravdu chcete smazat tento server? Budou smazány i všechny jeho certifikáty.')) {
+            fetch(`/evidence_certifikatu/servery/smazat/${id}`, { method: 'POST' })
+                .then(response => {
+                    if (response.ok || response.redirected) {
+                        window.location.reload();
+                    }
+                });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Došlo k chybě při ukládání serveru');
-    });
-}
+    }
+
+    function handleServerEdit(event, id) {
+        event.preventDefault();
+        console.log('Odesílám formulář s ID: ' + id);
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        const url = id ? `/evidence_certifikatu/servery/upravit/${id}` : '/evidence_certifikatu/servery/pridat';
+
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeModal('serverModal');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Došlo k chybě při ukládání serveru');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Došlo k chybě při ukládání serveru');
+            });
+    }
 </script>
-{% endblock %} 
+{% endblock %}

@@ -1,10 +1,13 @@
 import os
 import xml.etree.ElementTree as ET
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
     APPLICATION_ROOT = '/evidence_certifikatu'
     DEBUG = True
-    SECRET_KEY = 'tajny_klic'  # v produkci by měl být bezpečnější
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'fallback-zmenit-v-produkci'
     # Databáze: výchozí live + bindy pro live/test
     SQLALCHEMY_BINDS = {
         'live': 'sqlite:///certifikaty.db',

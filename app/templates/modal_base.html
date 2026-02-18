@@ -1,9 +1,16 @@
 <div class="modal-header">
     <h2>{% block modal_title %}Modální okno{% endblock %}</h2>
-    <span class="close" onclick="closeModal()">&times;</span>
+    <button class="close-button" onclick="closeModal()">&times;</button>
 </div>
 <div class="modal-body">
     {% block modal_content %}
     <!-- Obsah bude vložen zde -->
     {% endblock %}
-</div> 
+</div>
+{% block modal_footer %}
+<div class="modal-footer">
+    {% block modal_footer_buttons %}
+    <button class="button secondary" onclick="closeModal()">Zavřít</button>
+    {% endblock %}
+</div>
+{% endblock %}

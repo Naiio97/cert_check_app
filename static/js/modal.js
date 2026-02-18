@@ -1,16 +1,16 @@
 // Společný kód pro práci s modálními okny
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Zavření kliknutím na tlačítko Zavřít nebo křížek
-    document.addEventListener('click', function(event) {
-        if (event.target.hasAttribute('onclick') && 
+    document.addEventListener('click', function (event) {
+        if (event.target.hasAttribute('onclick') &&
             event.target.getAttribute('onclick').includes('closeModal()') ||
             event.target.classList.contains('close')) {
             closeModal();
         }
     });
-    
+
     // Zavření stisknutím klávesy Escape
-    document.addEventListener('keydown', function(event) {
+    document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeModal();
         }
@@ -34,7 +34,7 @@ function closeModal(modalId) {
     if (!modalId) {
         const modals = document.querySelectorAll('.modal');
         let closed = false;
-        
+
         modals.forEach(modal => {
             if (modal.style.display === 'block') {
                 modal.style.display = 'none';
@@ -42,7 +42,7 @@ function closeModal(modalId) {
                 closed = true;
             }
         });
-        
+
         if (!closed) {
             // Zkusíme konkrétní ID která používá naše aplikace
             const commonModalIds = ['modal', 'serverModal', 'certifikatModal'];
@@ -56,7 +56,7 @@ function closeModal(modalId) {
                 }
             }
         }
-        
+
         if (!closed) {
             console.error('Žádné otevřené modální okno nebylo nalezeno');
         }
@@ -73,8 +73,19 @@ function closeModal(modalId) {
 }
 
 // Zavření kliknutím mimo modální okno
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
+// Track mousedown target so dragging from inside → outside doesn't close
+let _modalMouseDownTarget = null;
+
+document.addEventListener('mousedown', function (event) {
+    _modalMouseDownTarget = event.target;
+});
+
+document.addEventListener('mouseup', function (event) {
+    // Close only if BOTH mousedown and mouseup happened on the .modal backdrop
+    if (_modalMouseDownTarget &&
+        _modalMouseDownTarget.classList.contains('modal') &&
+        event.target.classList.contains('modal')) {
         closeModal(event.target.id);
     }
-}; 
+    _modalMouseDownTarget = null;
+}); 

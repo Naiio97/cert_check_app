@@ -86,7 +86,7 @@ def upravit_server(id):
     
     return render_template('server_edit_modal.html', server=server)
 
-@bp.route('/servery/smazat/<int:id>')
+@bp.route('/servery/smazat/<int:id>', methods=['POST'])
 def smazat_server(id):
     try:
         server = Server.query.get_or_404(id)
