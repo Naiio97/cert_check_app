@@ -25,27 +25,16 @@ def get_expiry_class(cert):
         
     today = datetime.now().date()
     expiry = cert.expirace.date() if isinstance(cert.expirace, datetime) else cert.expirace
-    
-    # Získáme první den následujícího měsíce
-    if today.month == 12:
-        next_month = today.replace(year=today.year + 1, month=1, day=1)
-    else:
-        next_month = today.replace(month=today.month + 1, day=1)
-    
-    # Získáme první den přespříštího měsíce
-    if next_month.month == 12:
-        after_next_month = next_month.replace(year=next_month.year + 1, month=1, day=1)
-    else:
-        after_next_month = next_month.replace(month=next_month.month + 1, day=1)
-    
-    # Konec roku
-    year_end = today.replace(month=12, day=31)
-    
-    if expiry < next_month:
-        return 'cert-expired'  # Červená - končí tento měsíc
-    elif expiry < after_next_month:
-        return 'cert-warning'  # Oranžová - končí příští měsíc
-    elif expiry <= year_end:
-        return 'cert-ending-year'  # Modrá - končí tento rok
-    
-    return '' 
+
+    # Sjednocení s logikou dashboardu: <=30 dní kritické (červená),
+    # 31–60 dní varování (oranžová), zbytek letošního roku modrá
+    days_left = (expiry - today).days
+
+    if days_left <= 30:
+        return 'cert-expired'  # Červená
+    elif 30 < days_left <= 60:
+        return 'cert-warning'  # Oranžová
+    elif expiry.year == today.year and days_left > 60:
+        return 'cert-ending-year'  # Modrá
+
+    return ''
