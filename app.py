@@ -9,7 +9,7 @@ with app.app_context():
     # Vytvoříme tabulky pro obě databáze (live/test) přímo přes metadata
     for env in ('live', 'test'):
         try:
-            engine = db.get_engine(app, bind=env)
+            engine = db.engines[env]
             db.metadata.create_all(bind=engine)
         except Exception:
             pass

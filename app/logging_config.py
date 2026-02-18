@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import warnings
 from datetime import datetime
 from flask import request, has_request_context
 
@@ -26,8 +27,11 @@ def setup_ultimate_logging(app):
     - Zachytává nezachycené výjimky
     """
     
+    # 0. Potlačení DeprecationWarnings (logujeme je místo toho)
+    warnings.filterwarnings('ignore', category=DeprecationWarning)
+    
     # 1. Základní složka pro logy
-    log_base_dir = 'logs'
+    log_base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
     if not os.path.exists(log_base_dir):
         os.makedirs(log_base_dir)
         
@@ -40,22 +44,24 @@ def setup_ultimate_logging(app):
     log_file = os.path.join(daily_log_dir, 'app.log')
     
     # 3. Formátování
-    # Obsahuje čas, úroveň, logger, (metodu, url, ip pokud je request), zprávu a cestu ke zdroji
     log_format = '[%(asctime)s] [%(levelname)s] [%(name)s] [%(method)s] [%(remote_addr)s] %(message)s (%(pathname)s:%(lineno)d)'
     formatter = RequestFormatter(log_format)
     
-    # 4. File Handler
+    # 4. File Handler (UTF-8)
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
     
-    # 5. Console Handler
-    console_handler = logging.StreamHandler(sys.stdout)
+    # 5. Console Handler (UTF-8 pro Windows)
+    try:
+        console_stream = open(sys.stdout.fileno(), 'w', encoding='utf-8', closefd=False)
+    except Exception:
+        console_stream = sys.stdout
+    console_handler = logging.StreamHandler(console_stream)
     console_handler.setFormatter(formatter)
     console_handler.setLevel(logging.DEBUG)
     
     # 6. Nastavení root loggeru (zachytí vše od všech knihoven)
-    # Odstraníme existující handlery, abychom nedublovali
     root_logger = logging.getLogger()
     root_logger.handlers = []
     root_logger.setLevel(logging.DEBUG)
@@ -68,9 +74,9 @@ def setup_ultimate_logging(app):
     app.logger.addHandler(file_handler)
     app.logger.addHandler(console_handler)
     
-    # Potlačení příliš upovídaných knihoven (volitelné)
+    # Potlačení příliš upovídaných knihoven
     logging.getLogger('werkzeug').setLevel(logging.INFO)
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING) # Změnit na INFO pro SQL dotazy
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
     
     app.logger.info(f'Ultimate logging initialized. Log file: {log_file}')
     
@@ -82,3 +88,4 @@ def setup_ultimate_logging(app):
         root_logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
+
