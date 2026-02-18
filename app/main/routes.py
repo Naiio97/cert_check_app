@@ -1,11 +1,14 @@
-from flask import Blueprint, render_template, current_app, jsonify
+from flask import Blueprint, render_template, current_app, jsonify, request
 from app.models import Certifikat, Server
 from datetime import datetime
 
 bp = Blueprint('main', __name__)
 
+@bp.before_request
+def log_request():
+    current_app.logger.info(f"Request: {request.method} {request.path} (referrer: {request.referrer})")
+
 @bp.route('/')
-@bp.route('/evidence_certifikatu')
 def index():
     try:
         # Načteme všechny servery
@@ -41,4 +44,4 @@ def detail(id):
                               today=today)  # Předáme today do šablony
     except Exception as e:
         current_app.logger.error(f'Chyba při načítání detailu: {str(e)}')
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500

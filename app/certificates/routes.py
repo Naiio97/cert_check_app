@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app, flash, redirect, url_for, render_template, send_from_directory
+from flask import Blueprint, request, jsonify, current_app, flash, redirect, url_for, render_template, send_from_directory, g
 from app.models import Certifikat, Server
 from app import db
+from sqlalchemy import text
 from app.utils import allowed_file, is_valid_date
 from datetime import datetime, timedelta
 import pandas as pd
@@ -125,7 +126,7 @@ def import_excel():
         df = df.dropna(subset=['Server'])
         df = df[df['Expirace'].apply(is_valid_date)]
         
-        # Import serverů
+        # Import serverů (pouze do aktivního prostředí)
         unique_servers = df['Server'].unique()
         for server_name in unique_servers:
             if pd.isna(server_name):
@@ -304,12 +305,19 @@ def export_excel():
 @bp.route('/smazat-vse')
 def smazat_vse():
     try:
-        Certifikat.query.delete()
-        db.session.commit()
-        flash('Všechny certifikáty byly smazány!')
+        # Smazat pouze v aktivním prostředí (live/test)
+        env = getattr(g, 'db_bind', 'live')
+        try:
+            engine = db.engines[env]
+        except Exception:
+            engine = db.get_engine(current_app, bind=env)
+        with engine.begin() as conn:
+            conn.execute(text('DELETE FROM certifikat'))
+            conn.execute(text('DELETE FROM server'))
+        flash(f'Data byla smazána v prostředí: {env.upper()}!')
     except Exception as e:
+        current_app.logger.error(f'Chyba při mazání ({env}): {str(e)}')
         flash(f'Chyba při mazání: {str(e)}', 'error')
-        db.session.rollback()
     return redirect(url_for('main.index'))
 
 @bp.route('/detail/<int:id>')
@@ -341,20 +349,15 @@ def get_certificates(server):
         current_app.logger.error(f'Chyba při načítání certifikátů: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/evidence_certifikatu/send-report', methods=['POST'])
+@bp.route('/send-report', methods=['POST'])
 def trigger_report():
     try:
         from app.tasks import send_monthly_certificate_report
-        send_monthly_certificate_report()
-        return jsonify({
-            'success': True,
-            'message': 'Report byl úspěšně odeslán'
-        })
+        env = getattr(g, 'db_bind', 'live')
+        send_monthly_certificate_report(env)
+        return jsonify({'success': True, 'message': f'Report ({env}) odeslán'})
     except Exception as e:
         current_app.logger.error(f"Chyba při odesílání reportu: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Chyba při odesílání reportu: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': f'Chyba: {str(e)}'}), 500
 
 # ... další routy pro práci s certifikáty ... 

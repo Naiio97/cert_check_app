@@ -7,8 +7,23 @@
     --info-color: #34495e;
     --text-color: #2c3e50;
     --background-color: #f5f6fa;
-    --border-radius: 8px;
-    --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --surface-color: #ffffff;
+    --muted-text: #6b7280;
+    --border-color: rgba(0,0,0,0.08);
+    --header-bg: rgba(255,255,255,0.7);
+    --border-radius: 12px;
+    --box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+/* Dark theme */
+.theme-dark {
+    --text-color: #e5e7eb;
+    --background-color: #0b0f14;
+    --surface-color: #111827;
+    --muted-text: #9ca3af;
+    --border-color: rgba(255,255,255,0.08);
+    --header-bg: rgba(17,24,39,0.6);
+    --box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 /* Základní reset */
@@ -25,6 +40,165 @@ body {
     line-height: 1.6;
     padding: 20px;
 }
+
+/* Odlišení prostředí */
+.env-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+    border: 1px solid transparent;
+}
+
+.env-live .env-badge,
+body.env-live .env-badge {
+    color: #b42318;
+    background: #fee4e2;
+    border-color: #fecdca;
+}
+
+.env-test .env-badge,
+body.env-test .env-badge {
+    color: #067647;
+    background: #d1fadf;
+    border-color: #a6f4c5;
+}
+
+/* Přibarvení headeru podle prostředí (nenásilně) */
+body.env-live .app-header { border-bottom-color: rgba(220, 38, 38, 0.25); }
+body.env-test .app-header { border-bottom-color: rgba(5, 150, 105, 0.25); }
+
+/* Header & Navigation */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--header-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.app-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.app-header .brand i { color: #3498db; }
+
+.app-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.app-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #374151;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.app-nav a:hover { background: #f3f4f6; transform: translateY(-1px); }
+.app-nav a.active { background: #e8f3fb; color: #2563eb; }
+.app-nav a.link-cta { background: #3498db; color: white; }
+.app-nav a.link-cta:hover { background: #2d89c8; }
+
+.app-main { padding: 20px 0; }
+
+/* Env switcher */
+.env-switch {
+    display: inline-flex;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.env-btn {
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #374151;
+}
+.env-btn.active { background: #e8f3fb; color: #2563eb; }
+
+/* More menu */
+.menu-more { position: relative; }
+.menu-button {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #374151;
+}
+.menu-button:hover { background: #f3f4f6; }
+.menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: 42px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    min-width: 200px;
+    padding: 8px;
+    display: none;
+}
+.menu-dropdown.open { display: block; }
+.menu-item {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #374151;
+}
+.menu-item:hover { background: #f9fafb; }
+.menu-item.danger { color: #b91c1c; }
+
+/* Povrchy a karty */
+.table-container,
+.import-form,
+.server-stats,
+.server-list-container,
+.form-container,
+.modal-content {
+    background: var(--surface-color);
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
+}
+
+/* Modernější tlačítka */
+.button {
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.button:hover { box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+
+/* Tabulky v dark módu */
+.theme-dark table th { background: #0f172a; color: var(--muted-text); }
+.theme-dark table td { border-color: rgba(255,255,255,0.06); }
 
 .container {
     max-width: 1400px;

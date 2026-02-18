@@ -9,20 +9,152 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        {% block content %}{% endblock %}
-    </div>
+<body class="env-{{ current_env }}">
+    <header class="app-header">
+        <div class="brand">
+            <i class="fas fa-certificate"></i>
+            <span>Správa certifikátů</span>
+            <span class="env-badge {% if is_live %}env-live{% else %}env-test{% endif %}" title="Aktivní prostředí">
+                {{ current_env|upper }}
+            </span>
+        </div>
+        <nav class="app-nav">
+            <a href="{{ url_for('main.index') }}" class="{% if request.endpoint in ['main.index'] %}active{% endif %}">
+                <i class="fas fa-table"></i>
+                Přehled
+            </a>
+            <a href="{{ url_for('dashboard.index') }}" class="{% if request.blueprint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i>
+                Dashboard
+            </a>
+            <a href="{{ url_for('servers.seznam_serveru') }}" class="{% if request.blueprint == 'servers' %}active{% endif %}">
+                <i class="fas fa-server"></i>
+                Servery
+            </a>
+            <a href="{{ url_for('certificates.pridat_certifikat') }}" class="link-cta">
+                <i class="fas fa-plus"></i>
+                Nový certifikát
+            </a>
+            <a href="{{ url_for('certificates.export_excel') }}">
+                <i class="fas fa-file-export"></i>
+                Export
+            </a>
+
+            <div class="env-switch">
+                <button class="env-btn" data-env="live">Live</button>
+                <button class="env-btn" data-env="test">Test</button>
+            </div>
+
+            <div class="menu-more">
+                <button class="menu-button" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                <div class="menu-dropdown">
+                    <button class="menu-item" onclick="sendReportNow()">
+                        <i class="fas fa-paper-plane"></i>
+                        Poslat report teď
+                    </button>
+                    <button class="menu-item danger" onclick="openDeleteDbModal()">
+                        <i class="fas fa-trash"></i>
+                        Smazat DB
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="app-main">
+        <div class="container">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
     
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script>
+    // Dropdown menu
+    document.addEventListener('click', function(e){
+        const more = document.querySelector('.menu-more');
+        if(!more) return;
+        const btn = more.querySelector('.menu-button');
+        const menu = more.querySelector('.menu-dropdown');
+        if(btn.contains(e.target)){
+            const open = menu.classList.toggle('open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        } else if(!menu.contains(e.target)){
+            menu.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // Delete DB modal
+    function openDeleteDbModal(){
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Opravdu smazat databázi?</h2>
+                    <button class="close-button" onclick="this.closest('.modal').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p>Tato akce je nevratná a odstraní všechny certifikáty pouze v aktuálním prostředí <strong id=\"env-label\"></strong>.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="button secondary" onclick="this.closest('.modal').remove()">Zrušit</button>
+                    <a class="button danger" href="/evidence_certifikatu/smazat-vse">Smazat</a>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+        // doplníme label prostředí
+        try {
+            const m = document.cookie.match(/(?:^|; )env=([^;]+)/);
+            const env = m ? decodeURIComponent(m[1]) : 'live';
+            document.getElementById('env-label').textContent = env.toUpperCase();
+        } catch(e){}
+    }
+
+    // Force světly režim (žádné automatické přepínání)
+    (function(){
+        try {
+            document.documentElement.classList.remove('theme-dark');
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark') localStorage.setItem('theme', 'light');
+        } catch(e){}
+    })();
+
+    // Env switcher
+    (function(){
+        const buttons = document.querySelectorAll('.env-btn');
+        if (!buttons.length) return;
+        // zvýraznit aktivní
+        const active = (document.cookie.match(/(?:^|; )env=([^;]+)/)||[])[1] || 'live';
+        buttons.forEach(b=>{
+            if(b.dataset.env === decodeURIComponent(active)) b.classList.add('active');
+            b.addEventListener('click', ()=>{
+                const env = b.dataset.env;
+                document.cookie = `env=${env}; Path=/; SameSite=Lax`;
+                window.location.reload();
+            });
+        });
+    })();
+
+    // Manual send report
+    function sendReportNow(){
+        fetch('/evidence_certifikatu/send-report', {method:'POST'})
+            .then(r=>r.json())
+            .then(d=>{ alert(d.message || 'Hotovo'); })
+            .catch(()=>alert('Chyba při odeslání reportu'))
+    }
+    </script>
 </body>
 </html> 
