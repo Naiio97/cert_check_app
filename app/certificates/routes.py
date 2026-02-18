@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app, flash, redirect, url_for, render_template, send_from_directory, g
-from app.models import Certifikat, Server
+from app.models import Certifikat, Server, AuditLog
 from app import db
 from sqlalchemy import text
 from app.utils import allowed_file, is_valid_date
@@ -30,13 +30,27 @@ def pridat_certifikat():
                 poznamka=request.form.get('poznamka', '')
             )
             db.session.add(novy_cert)
+            db.session.flush()
+            db.session.add(AuditLog(
+                akce='pridano',
+                certifikat_nazev=novy_cert.nazev,
+                server=novy_cert.server,
+                detail=f'Cesta: {novy_cert.cesta}, Expirace: {novy_cert.expirace.strftime("%d.%m.%Y")}'
+            ))
             db.session.commit()
             flash('Certifikát byl úspěšně přidán!')
             return redirect(url_for('main.index'))
+        except ValueError:
+            db.session.rollback()
+            flash('Neplatný formát data! Použijte formát dd.mm.yyyy (např. 31.12.2025)', 'error')
+            servery = Server.query.all()
+            return render_template('formular.html', certifikat=None, servery=servery, error_field='expirace')
         except Exception as e:
+            db.session.rollback()
             current_app.logger.error(f'Chyba při přidávání certifikátu: {str(e)}')
             flash(f'Chyba při přidávání certifikátu: {str(e)}')
-            return redirect(url_for('certificates.pridat_certifikat'))
+            servery = Server.query.all()
+            return render_template('formular.html', certifikat=None, servery=servery)
     
     servery = Server.query.all()
     return render_template('formular.html', certifikat=None, servery=servery)
@@ -69,14 +83,24 @@ def upravit_certifikat(id):
             
             certifikat.poznamka = request.form.get('poznamka', '')
             
+            db.session.add(AuditLog(
+                akce='upraveno',
+                certifikat_nazev=certifikat.nazev,
+                server=certifikat.server,
+                detail=f'Cesta: {certifikat.cesta}, Expirace: {expirace.strftime("%d.%m.%Y")}'
+            ))
             db.session.commit()
             flash('Certifikát byl úspěšně upraven', 'success')
             return redirect('/evidence_certifikatu')
+        except ValueError:
+            db.session.rollback()
+            flash('Neplatný formát data! Použijte formát dd.mm.yyyy', 'error')
+            return render_template('formular.html', certifikat=certifikat, servery=servery, error_field='expirace')
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f'Chyba při úpravě certifikátu: {str(e)}')
             flash(f'Chyba při úpravě certifikátu: {str(e)}', 'error')
-            return redirect('/evidence_certifikatu')
+            return render_template('formular.html', certifikat=certifikat, servery=servery)
     
     return render_template('formular.html', 
                          certifikat=certifikat,
@@ -87,6 +111,12 @@ def smazat_certifikat(id):
     try:
         certifikat = Certifikat.query.get_or_404(id)
         current_app.logger.info(f'Mazání certifikátu: {certifikat.nazev} ze serveru {certifikat.server}')
+        db.session.add(AuditLog(
+            akce='smazano',
+            certifikat_nazev=certifikat.nazev,
+            server=certifikat.server,
+            detail=f'Cesta: {certifikat.cesta}, Expirace: {certifikat.expirace.strftime("%d.%m.%Y")}'
+        ))
         db.session.delete(certifikat)
         db.session.commit()
         flash('Certifikát byl smazán!')
@@ -314,6 +344,13 @@ def smazat_vse():
         with engine.begin() as conn:
             conn.execute(text('DELETE FROM certifikat'))
             conn.execute(text('DELETE FROM server'))
+        db.session.add(AuditLog(
+            akce='smazano',
+            certifikat_nazev='VŠE',
+            server='VŠE',
+            detail=f'Smazána celá databáze ({env.upper()})'
+        ))
+        db.session.commit()
         flash(f'Data byla smazána v prostředí: {env.upper()}!')
     except Exception as e:
         current_app.logger.error(f'Chyba při mazání ({env}): {str(e)}')
@@ -329,11 +366,16 @@ def detail_certifikatu(id):
         current_app.logger.error(f'Chyba při načítání detailu: {str(e)}')
         return f'Chyba při načítání detailu: {str(e)}', 500
 
-@bp.route('/get-certificates/<server>')
-def get_certificates(server):
+@bp.route('/server/<server>')
+def get_certifikaty_server(server):
     try:
-        certifikaty = Certifikat.query.filter_by(server=server)\
-            .order_by(Certifikat.expirace, Certifikat.cesta).all()
+        page = request.args.get('page', 1, type=int)
+        
+        pagination = Certifikat.query.filter_by(server=server)\
+            .order_by(Certifikat.expirace, Certifikat.cesta)\
+            .paginate(page=page, per_page=25, error_out=False)
+        
+        certifikaty = pagination.items
         
         certs_data = [{
             'id': cert.id,
@@ -344,7 +386,18 @@ def get_certificates(server):
             'expiry_class': get_expiry_class(cert)
         } for cert in certifikaty]
         
-        return jsonify(certs_data)
+        return jsonify({
+            'items': certs_data,
+            'pagination': {
+                'page': pagination.page,
+                'pages': pagination.pages,
+                'total': pagination.total,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev,
+                'next_num': pagination.next_num,
+                'prev_num': pagination.prev_num
+            }
+        })
     except Exception as e:
         current_app.logger.error(f'Chyba při načítání certifikátů: {str(e)}')
         return jsonify({'error': str(e)}), 500
@@ -360,4 +413,82 @@ def trigger_report():
         current_app.logger.error(f"Chyba při odesílání reportu: {str(e)}")
         return jsonify({'success': False, 'message': f'Chyba: {str(e)}'}), 500
 
-# ... další routy pro práci s certifikáty ... 
+
+@bp.route('/smazat-vybrane', methods=['POST'])
+def smazat_vybrane():
+    """Bulk delete: accepts JSON { ids: [1, 2, 3] }"""
+    try:
+        data = request.get_json()
+        ids = data.get('ids', []) if data else []
+        if not ids:
+            return jsonify({'success': False, 'message': 'Žádné certifikáty k smazání'}), 400
+
+        count = 0
+        for cert_id in ids:
+            cert = Certifikat.query.get(cert_id)
+            if cert:
+                db.session.add(AuditLog(
+                    akce='smazano',
+                    certifikat_nazev=cert.nazev,
+                    server=cert.server,
+                    detail=f'Hromadné smazání – Cesta: {cert.cesta}'
+                ))
+                db.session.delete(cert)
+                count += 1
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Smazáno {count} certifikátů'})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Chyba při hromadném mazání: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@bp.route('/export-vybrane', methods=['POST'])
+def export_vybrane():
+    """Export selected certificates to Excel."""
+    try:
+        data = request.get_json()
+        ids = data.get('ids', []) if data else []
+        if not ids:
+            return jsonify({'success': False, 'message': 'Žádné certifikáty k exportu'}), 400
+
+        certs = Certifikat.query.filter(Certifikat.id.in_(ids)).order_by(Certifikat.expirace).all()
+        if not certs:
+            return jsonify({'success': False, 'message': 'Certifikáty nenalezeny'}), 404
+
+        from openpyxl import Workbook
+        from tempfile import NamedTemporaryFile
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Vybrané certifikáty'
+        ws.append(['Server', 'Cesta', 'Název', 'Expirace', 'Poznámka'])
+
+        for cert in certs:
+            ws.append([
+                cert.server,
+                cert.cesta,
+                cert.nazev,
+                cert.expirace.strftime('%d.%m.%Y'),
+                cert.poznamka or ''
+            ])
+
+        # Auto-width columns
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+
+        tmp = NamedTemporaryFile(delete=False, suffix='.xlsx')
+        wb.save(tmp.name)
+        tmp.close()
+
+        import os
+        return send_from_directory(
+            os.path.dirname(tmp.name),
+            os.path.basename(tmp.name),
+            as_attachment=True,
+            download_name='vybrane_certifikaty.xlsx'
+        )
+    except Exception as e:
+        current_app.logger.error(f'Chyba při exportu vybraných: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500

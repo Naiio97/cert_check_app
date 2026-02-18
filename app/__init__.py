@@ -64,6 +64,12 @@ def create_app(config_class=Config):
     from app.main.dashboard import bp as dashboard_bp
     app.register_blueprint(dashboard_bp, url_prefix='/evidence_certifikatu')
 
+    from app.main.historie import bp as historie_bp
+    app.register_blueprint(historie_bp, url_prefix='/evidence_certifikatu')
+
+    from app.main.settings import bp as settings_bp
+    app.register_blueprint(settings_bp, url_prefix='/evidence_certifikatu')
+
     @app.context_processor
     def inject_env():
         env = getattr(g, 'db_bind', 'live')
@@ -82,9 +88,11 @@ def create_app(config_class=Config):
         g.db_bind = env
         # Nastavíme bind pro ORM modely podle zvoleného prostředí
         try:
-            from app.models import Server, Certifikat
+            from app.models import Server, Certifikat, AuditLog, Settings
             Server.__bind_key__ = env
             Certifikat.__bind_key__ = env
+            AuditLog.__bind_key__ = env
+            Settings.__bind_key__ = env
         except Exception:
             pass
     

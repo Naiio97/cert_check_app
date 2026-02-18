@@ -66,6 +66,9 @@
     <table>
         <thead>
             <tr>
+                <th class="col-check">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Vybrat vše">
+                </th>
                 <th>Server</th>
                 <th>Cesta</th>
                 <th>Název certifikátu</th>
@@ -76,6 +79,9 @@
         <tbody>
             {% for cert in certifikaty %}
             <tr class="{{ cert|get_expiry_class }}">
+                <td class="col-check">
+                    <input type="checkbox" class="cert-check" value="{{ cert.id }}" onchange="updateBulkToolbar()">
+                </td>
                 <td>{{ cert.server }}</td>
                 <td>{{ cert.cesta }}</td>
                 <td>{{ cert.nazev }}</td>
@@ -95,6 +101,46 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<!-- Pagination -->
+<div id="pagination" class="pagination">
+    {% if pagination and pagination.pages > 1 %}
+    {% if pagination.has_prev %}
+    <a href="?page={{ pagination.prev_num }}" class="page-link" data-page="{{ pagination.prev_num }}">
+        <i class="fas fa-chevron-left"></i> Předchozí
+    </a>
+    {% endif %}
+
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+    {% if p %}
+    <a href="?page={{ p }}" class="page-link {% if p == pagination.page %}active{% endif %}" data-page="{{ p }}">{{ p
+        }}</a>
+    {% else %}
+    <span class="page-ellipsis">…</span>
+    {% endif %}
+    {% endfor %}
+
+    {% if pagination.has_next %}
+    <a href="?page={{ pagination.next_num }}" class="page-link" data-page="{{ pagination.next_num }}">
+        Další <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Floating bulk toolbar -->
+<div id="bulkToolbar" class="bulk-toolbar" style="display:none">
+    <span class="bulk-count"><span id="bulkCount">0</span> vybráno</span>
+    <button class="button danger" onclick="bulkDelete()">
+        <i class="fas fa-trash"></i> Smazat vybrané
+    </button>
+    <button class="button success" onclick="bulkExport()">
+        <i class="fas fa-file-export"></i> Export vybraných
+    </button>
+    <button class="button secondary" onclick="deselectAll()">
+        <i class="fas fa-times"></i> Zrušit výběr
+    </button>
 </div>
 
 <!-- Modal -->
@@ -130,6 +176,85 @@
                 document.querySelector('#modal .modal-content').innerHTML = html;
                 openModal('modal');
             });
+    }
+
+    /* ─── Bulk operations ─── */
+    function getSelectedIds() {
+        return [...document.querySelectorAll('.cert-check:checked')].map(cb => parseInt(cb.value));
+    }
+
+    function toggleSelectAll(masterCb) {
+        document.querySelectorAll('.cert-check').forEach(cb => {
+            // Only select visible rows
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = masterCb.checked;
+            }
+        });
+        updateBulkToolbar();
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.cert-check').forEach(cb => cb.checked = false);
+        document.getElementById('selectAll').checked = false;
+        updateBulkToolbar();
+    }
+
+    function updateBulkToolbar() {
+        const count = getSelectedIds().length;
+        const toolbar = document.getElementById('bulkToolbar');
+        document.getElementById('bulkCount').textContent = count;
+        toolbar.style.display = count > 0 ? 'flex' : 'none';
+    }
+
+    function bulkDelete() {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+        if (!confirm(`Opravdu smazat ${ids.length} certifikátů?`)) return;
+
+        fetch('/evidence_certifikatu/smazat-vybrane', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // Remove deleted rows
+                    ids.forEach(id => {
+                        const cb = document.querySelector(`.cert-check[value="${id}"]`);
+                        if (cb) cb.closest('tr').remove();
+                    });
+                    deselectAll();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            });
+    }
+
+    function bulkExport() {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+
+        fetch('/evidence_certifikatu/export-vybrane', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        })
+            .then(response => {
+                if (response.ok) return response.blob();
+                throw new Error('Export selhal');
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'vybrane_certifikaty.xlsx';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Export dokončen', 'success');
+            })
+            .catch(e => showToast(e.message, 'error'));
     }
 </script>
 {% endblock %}
