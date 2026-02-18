@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Nastavení{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1><i class="fas fa-cog"></i> Nastavení</h1>
+</div>
+
+<div class="settings-grid">
+    <!-- Prahy notifikací -->
+    <div class="settings-card">
+        <h3><i class="fas fa-bell"></i> Prahy notifikací</h3>
+        <p class="settings-desc">Nastavte, kolik dnů před expirací se certifikát označí jako kritický nebo varování.</p>
+        <form method="POST" action="{{ url_for('settings.save') }}">
+            <div class="form-group">
+                <label for="alert_days_critical">
+                    <span class="badge badge-danger">Kritické</span> – počet dnů
+                </label>
+                <input type="number" id="alert_days_critical" name="alert_days_critical"
+                    value="{{ settings.get('alert_days_critical', '30') }}" min="1" max="365">
+            </div>
+            <div class="form-group">
+                <label for="alert_days_warning">
+                    <span class="badge badge-warning">Varování</span> – počet dnů
+                </label>
+                <input type="number" id="alert_days_warning" name="alert_days_warning"
+                    value="{{ settings.get('alert_days_warning', '60') }}" min="1" max="365">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button primary">
+                    <i class="fas fa-save"></i> Uložit prahy
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- SMTP Configuration -->
+    <div class="settings-card">
+        <form method="POST" action="{{ url_for('settings.save_smtp') }}">
+            <h3><i class="fas fa-server"></i> SMTP Konfigurace</h3>
+            <p class="settings-desc">Nastavení poštovního serveru. Hodnoty v databázi mají přednost před souborem
+                <code>.env</code>.
+            </p>
+
+            <div class="form-group">
+                <label>Server</label>
+                <input type="text" name="mail_server" value="{{ settings.get('mail_server', '') }}"
+                    placeholder="{{ config.get('MAIL_SERVER', 'localhost') }}">
+            </div>
+
+            <div style="display:flex; gap:16px">
+                <div class="form-group" style="flex:1">
+                    <label>Port</label>
+                    <input type="number" name="mail_port" value="{{ settings.get('mail_port', '') }}"
+                        placeholder="{{ config.get('MAIL_PORT', '25') }}">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Odesílatel (From)</label>
+                    <input type="email" name="mail_sender_address" value="{{ settings.get('mail_sender_address', '') }}"
+                        placeholder="{{ config.get('MAIL_SENDER_ADDRESS', '') }}">
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="mail_use_tls" name="mail_use_tls" {% if settings.get('mail_use_tls')=='True'
+                    %}checked{% endif %}>
+                <label for="mail_use_tls">Použít TLS zabezpečení</label>
+            </div>
+
+            <div style="display:flex; gap:16px">
+                <div class="form-group" style="flex:1">
+                    <label>Uživatel (Username)</label>
+                    <input type="text" name="mail_username" value="{{ settings.get('mail_username', '') }}"
+                        autocomplete="off">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Heslo (Password)</label>
+                    <input type="password" name="mail_password" value="{{ settings.get('mail_password', '') }}"
+                        autocomplete="new-password" placeholder="******">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">
+                    <i class="fas fa-save"></i> Uložit konfiguraci
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+</div>
+
+
+{% endblock %}

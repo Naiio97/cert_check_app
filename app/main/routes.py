@@ -18,17 +18,23 @@ def index():
         # Načteme aktivní server z prvního serveru v seznamu
         aktivni_server = servery_nazvy[0] if servery_nazvy else None
         
+        page = request.args.get('page', 1, type=int)
+
         # Načteme certifikáty pro aktivní server
         if aktivni_server:
-            certifikaty = Certifikat.query.filter_by(server=aktivni_server)\
-                .order_by(Certifikat.expirace, Certifikat.cesta).all()
+            pagination = Certifikat.query.filter_by(server=aktivni_server)\
+                .order_by(Certifikat.expirace, Certifikat.cesta)\
+                .paginate(page=page, per_page=25, error_out=False)
+            certifikaty = pagination.items
         else:
+            pagination = None
             certifikaty = []
         
         return render_template('index.html',
                              certifikaty=certifikaty,
                              servery=servery_nazvy,
-                             aktivni_server=aktivni_server)
+                             aktivni_server=aktivni_server,
+                             pagination=pagination)
                              
     except Exception as e:
         current_app.logger.error(f'Chyba při načítání hlavní stránky: {str(e)}')

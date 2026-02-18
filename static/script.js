@@ -1,27 +1,27 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Najdeme všechny odkazy na servery
     const serverLinks = document.querySelectorAll('.nav-item');
-    
+
     // Přidáme event listener na každý odkaz
     serverLinks.forEach(link => {
         link.addEventListener('click', async (e) => {
             e.preventDefault();
-            
+
             // Odstranění aktivní třídy ze všech položek
             document.querySelectorAll('.nav-item').forEach(navItem => {
                 navItem.classList.remove('active');
             });
-            
+
             // Přidání aktivní třídy na kliknutou položku
             e.target.classList.add('active');
-            
+
             const server = e.target.dataset.server;
-            
+
             try {
                 // Načtení certifikátů pro vybraný server
                 const response = await fetch(`/get-certificates/${server}`);
                 const certificates = await response.json();
-                
+
                 // Použijeme existující funkci updateTable místo přímé manipulace s innerHTML
                 updateTable(certificates);
             } catch (error) {
@@ -43,7 +43,7 @@ function getExpiryClass(expiryDate) {
     const today = new Date();
     const expiry = new Date(expiryDate);
     const daysToExpiry = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
-    
+
     if (daysToExpiry <= 30) {
         return 'cert-expired';
     } else if (daysToExpiry <= 60) {
@@ -57,7 +57,7 @@ function getExpiryClass(expiryDate) {
 function updateTable(certificates) {
     const tbody = document.querySelector('table tbody');
     tbody.innerHTML = '';
-    
+
     certificates.forEach(cert => {
         const row = document.createElement('tr');
         row.className = getExpiryClass(cert.expirace);  // Přidáme třídu podle expirace
@@ -86,19 +86,19 @@ async function zobrazitDetail(id) {
     try {
         const response = await fetch(`/detail/${id}`);
         const data = await response.text();
-        
+
         const modal = document.getElementById('detailModal');
         const modalBody = modal.querySelector('.modal-body');
         const modalTitle = modal.querySelector('.modal-header h2');
-        
+
         // Nastavíme titulek a obsah
         modalTitle.textContent = 'Detail certifikátu';
         modalBody.innerHTML = data;
-        
+
         modal.style.display = 'block';
-        
+
         // Zavření modálu při kliknutí mimo něj
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (event.target == modal) {
                 closeModal();
             }
@@ -112,21 +112,21 @@ async function upravitCertifikat(id) {
     try {
         const response = await fetch(`/get-edit-form/${id}`);
         const data = await response.text();
-        
+
         const modal = document.getElementById('detailModal');
         const modalBody = modal.querySelector('.modal-body');
         const modalTitle = modal.querySelector('.modal-header h2');
-        
+
         // Nastavíme titulek a obsah
         modalTitle.textContent = 'Upravit certifikát';
         modalBody.innerHTML = data;
-        
+
         // Inicializace datepickeru pro pole s datem
         flatpickr("#expirace", {
             dateFormat: "d.m.Y",
             locale: "cs"
         });
-        
+
         modal.style.display = 'block';
     } catch (error) {
         showImportMessage('Chyba při načítání formuláře: ' + error.message);
@@ -137,7 +137,7 @@ function closeModal() {
     const modal = document.getElementById('detailModal');
     const modalBody = modal.querySelector('.modal-body');
     const modalTitle = modal.querySelector('.modal-header h2');
-    
+
     // Vyčistíme obsah modálního okna
     modalBody.innerHTML = '';
     modalTitle.textContent = '';
@@ -159,7 +159,7 @@ function showImportMessage(message) {
     const messageDiv = document.getElementById('importMessage');
     messageDiv.textContent = message;
     messageDiv.style.display = 'block';
-    
+
     // Skryjeme zprávu po 5 sekundách
     setTimeout(() => {
         messageDiv.style.display = 'none';
@@ -170,14 +170,14 @@ async function handleImport(event) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
-    
+
     try {
         const response = await fetch(form.action, {
             method: 'POST',
             body: formData
         });
         const data = await response.json();
-        
+
         if (response.ok) {
             showImportMessage(data.message);
             // Skryjeme formulář
@@ -209,7 +209,7 @@ async function smazatDB() {
             const response = await fetch('/smazat-db');
             const data = await response.json();
             showImportMessage(data.message);
-            
+
             // Obnovíme stránku po 2 sekundách
             setTimeout(() => {
                 window.location.reload();
@@ -224,18 +224,18 @@ async function handleEdit(event, id) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
-    
+
     try {
         const response = await fetch(`/upravit/${id}`, {
             method: 'POST',
             body: formData
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             showImportMessage(data.message);
             closeModal();
-            
+
             // Aktualizace tabulky
             const aktivniServer = document.querySelector('.nav-item.active');
             if (aktivniServer) {
@@ -255,14 +255,19 @@ async function handleEdit(event, id) {
 
 function smazatCertifikat(id) {
     if (confirm('Opravdu chcete smazat tento certifikát?')) {
-        fetch(`/smazat/${id}`)
+        fetch(`/evidence_certifikatu/smazat/${id}`, { method: 'POST' })
             .then(response => {
-                if (response.ok) {
+                if (response.ok || response.redirected) {
                     // Znovu načteme aktuální server
-                    const aktivniServer = document.querySelector('.nav-item.active').getAttribute('data-server');
-                    fetch(`/get-certificates/${aktivniServer}`)
-                        .then(response => response.json())
-                        .then(data => updateTable(data));
+                    const aktivniServer = document.querySelector('.nav-item.active');
+                    if (aktivniServer) {
+                        const serverName = aktivniServer.getAttribute('data-server');
+                        fetch(`/evidence_certifikatu/get-certificates/${serverName}`)
+                            .then(response => response.json())
+                            .then(data => updateTable(data));
+                    } else {
+                        window.location.reload();
+                    }
                 }
             });
     }
@@ -281,14 +286,14 @@ async function zobrazitDetailServeru(id) {
     try {
         const response = await fetch(`/get-server-detail/${id}`);
         const data = await response.text();
-        
+
         const modal = document.getElementById('detailModal');
         const modalBody = modal.querySelector('.modal-body');
         const modalTitle = modal.querySelector('.modal-header h2');
-        
+
         modalTitle.textContent = 'Detail serveru';
         modalBody.innerHTML = data;
-        
+
         modal.style.display = 'block';
     } catch (error) {
         showImportMessage('Chyba při načítání detailu: ' + error.message);
@@ -299,14 +304,14 @@ async function upravitServer(id) {
     try {
         const response = await fetch(`/get-server-edit-form/${id}`);
         const data = await response.text();
-        
+
         const modal = document.getElementById('detailModal');
         const modalBody = modal.querySelector('.modal-body');
         const modalTitle = modal.querySelector('.modal-header h2');
-        
+
         modalTitle.textContent = 'Upravit server';
         modalBody.innerHTML = data;
-        
+
         modal.style.display = 'block';
     } catch (error) {
         showImportMessage('Chyba při načítání formuláře: ' + error.message);
@@ -317,18 +322,18 @@ async function handleServerEdit(event, id) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
-    
+
     try {
         const response = await fetch(`/upravit-server/${id}`, {
             method: 'POST',
             body: formData
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             showImportMessage(data.message);
             closeModal();
-            
+
             // Obnovíme stránku pro zobrazení změn
             window.location.reload();
         } else {
@@ -342,11 +347,24 @@ async function handleServerEdit(event, id) {
 
 function smazatServer(id) {
     if (confirm('Opravdu chcete smazat tento server?')) {
-        fetch(`/smazat-server/${id}`)
+        fetch(`/evidence_certifikatu/servery/smazat/${id}`, { method: 'POST' })
             .then(response => {
-                if (response.ok) {
+                if (response.ok || response.redirected) {
                     window.location.reload();
                 }
             });
     }
-} 
+}
+
+/* ─── Fulltext search ─── */
+function filterTable(query) {
+    const tbody = document.querySelector('.table-container tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    const q = query.toLowerCase().trim();
+    rows.forEach(row => {
+        if (!q) { row.style.display = ''; return; }
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}
