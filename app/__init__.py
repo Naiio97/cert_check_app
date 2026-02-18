@@ -96,30 +96,16 @@ def create_app(config_class=Config):
         except Exception:
             pass
     
+
     # Spustíme plánovač úloh (lazy import kvůli cyklickým závislostem)
     try:
         from app.tasks import init_scheduler
         init_scheduler(app)
     except Exception:
         app.logger.warning('Nepodařilo se inicializovat plánovač úloh')
+    
+    # Nastavení pokročilého logování
+    from app.logging_config import setup_ultimate_logging
+    setup_ultimate_logging(app)
+    
     return app
-
-def setup_logging(app):
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
-        
-    file_handler = RotatingFileHandler(
-        'logs/app.log',
-        maxBytes=10*1024*1024,
-        backupCount=10,
-        encoding='utf-8'
-    )
-    
-    formatter = logging.Formatter(
-        '[%(asctime)s] [%(levelname)s] %(message)s (in %(pathname)s:%(lineno)d)'
-    )
-    file_handler.setFormatter(formatter)
-    
-    app.logger.addHandler(file_handler)
-    app.logger.setLevel(logging.INFO)
-    app.logger.info('Aplikace spuštěna')
