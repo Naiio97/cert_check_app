@@ -35,101 +35,62 @@
         </form>
     </div>
 
-    <!-- Email nastavení (info only) -->
+    <!-- SMTP Configuration -->
     <div class="settings-card">
-        <h3><i class="fas fa-envelope"></i> E-mail report</h3>
-        <p class="settings-desc">Konfigurace odesílání reportů se načítá z <code>.env</code> souboru.</p>
-        <div class="detail-content">
-            <div class="detail-row">
-                <label>SMTP Server:</label>
-                <span>{{ config.get('MAIL_SERVER', '–') }}</span>
-            </div>
-            <div class="detail-row">
-                <label>Port:</label>
-                <span>{{ config.get('MAIL_PORT', '–') }}</span>
-            </div>
-            <div class="detail-row">
-                <label>Příjemci:</label>
-                <span>{{ config.get('MAIL_RECIPIENTS', '–') }}</span>
-            </div>
-            <div class="detail-row">
-                <label>Report den:</label>
-                <span>{{ report_day }}. v měsíci v {{ report_hour }}:{{ '%02d'|format(report_minute) }}</span>
-            </div>
-        </div>
-        <div class="form-actions" style="margin-top:12px">
-            <!-- Původní tlačítko pro test reportu -->
-            <button class="button info" onclick="sendTestReport()"
-                title="Odešle reálný report expirací (pokud nějaké jsou)">
-                <i class="fas fa-list-alt"></i> Odeslat report expirací
-            </button>
-        </div>
-    </div>
+        <form method="POST" action="{{ url_for('settings.save_smtp') }}">
+            <h3><i class="fas fa-server"></i> SMTP Konfigurace</h3>
+            <p class="settings-desc">Nastavení poštovního serveru. Hodnoty v databázi mají přednost před souborem
+                <code>.env</code>.
+            </p>
 
-    <!-- SMTP Test -->
-    <div class="settings-card">
-        <h3><i class="fas fa-hammer"></i> Testování Emailu</h3>
-        <p class="settings-desc">Ověření spojení s SMTP serverem.</p>
-
-        <div class="info-box"
-            style="margin-bottom:16px; background:rgba(59, 130, 246, 0.1); border-left:4px solid #3b82f6; padding:12px">
-            <div style="font-weight:600; color:#1e40af; margin-bottom:4px"><i class="fas fa-info-circle"></i> Lokální
-                testování</div>
-            <div style="font-size:13px; color:#1e3a8a">
-                Pro testování bez reálného serveru spusťte:<br>
-                <code>python debug_smtp.py</code><br>
-                A nastavte v <code>.env</code>: <code>MAIL_SERVER=localhost</code>, <code>MAIL_PORT=1025</code>.
-            </div>
-        </div>
-
-        <form action="{{ url_for('settings.test_email') }}" method="POST">
             <div class="form-group">
-                <label>Odeslat testovací email na:</label>
-                <div style="display:flex; gap:10px">
-                    <input type="email" name="test_email_recipient" placeholder="vase.adresa@example.com" required
-                        style="flex:1" value="{{ config.get('MAIL_RECIPIENTS', '').split(',')[0].strip() }}">
-                    <button type="submit" class="button primary">
-                        <i class="fas fa-paper-plane"></i> Odeslat
-                    </button>
+                <label>Server</label>
+                <input type="text" name="mail_server" value="{{ settings.get('mail_server', '') }}"
+                    placeholder="{{ config.get('MAIL_SERVER', 'localhost') }}">
+            </div>
+
+            <div style="display:flex; gap:16px">
+                <div class="form-group" style="flex:1">
+                    <label>Port</label>
+                    <input type="number" name="mail_port" value="{{ settings.get('mail_port', '') }}"
+                        placeholder="{{ config.get('MAIL_PORT', '25') }}">
                 </div>
+                <div class="form-group" style="flex:1">
+                    <label>Odesílatel (From)</label>
+                    <input type="email" name="mail_sender_address" value="{{ settings.get('mail_sender_address', '') }}"
+                        placeholder="{{ config.get('MAIL_SENDER_ADDRESS', '') }}">
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="mail_use_tls" name="mail_use_tls" {% if settings.get('mail_use_tls')=='True'
+                    %}checked{% endif %}>
+                <label for="mail_use_tls">Použít TLS zabezpečení</label>
+            </div>
+
+            <div style="display:flex; gap:16px">
+                <div class="form-group" style="flex:1">
+                    <label>Uživatel (Username)</label>
+                    <input type="text" name="mail_username" value="{{ settings.get('mail_username', '') }}"
+                        autocomplete="off">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Heslo (Password)</label>
+                    <input type="password" name="mail_password" value="{{ settings.get('mail_password', '') }}"
+                        autocomplete="new-password" placeholder="******">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">
+                    <i class="fas fa-save"></i> Uložit konfiguraci
+                </button>
             </div>
         </form>
     </div>
 
-    <!-- Email Previews -->
-    <div class="settings-card">
-        <h3><i class="fas fa-eye"></i> Náhledy emailů</h3>
-        <p class="settings-desc">Zobrazit jak budou emaily vypadat v prohlížeči.</p>
 
-        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px">
-            {% for env in report_envs %}
-            <div
-                style="display:flex; gap:12px; align-items:center; background:#f1f5f9; padding:10px 12px; border-radius:8px">
-                <strong style="width:60px; color:#475569">{{ env|upper }}</strong>
-                <div style="display:flex; gap:8px; flex:1">
-                    <a href="{{ url_for('settings.preview_alert', env=env) }}" target="_blank" class="button small info"
-                        style="text-decoration:none; color:white">
-                        <i class="fas fa-bell"></i> Denní Alert
-                    </a>
-                    <a href="{{ url_for('settings.preview_report', env=env) }}" target="_blank"
-                        class="button small success" style="text-decoration:none; color:white">
-                        <i class="fas fa-file-alt"></i> Měsíční Report
-                    </a>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
 </div>
 
-<script>
-    function sendTestReport() {
-        fetch('/evidence_certifikatu/send-report', { method: 'POST' })
-            .then(r => r.json())
-            .then(data => {
-                showToast(data.message, data.success ? 'success' : 'error');
-            })
-            .catch(() => showToast('Chyba při odesílání reportu', 'error'));
-    }
-</script>
+
 {% endblock %}

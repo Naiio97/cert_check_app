@@ -402,18 +402,6 @@ def get_certifikaty_server(server):
         current_app.logger.error(f'Chyba při načítání certifikátů: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/send-report', methods=['POST'])
-def trigger_report():
-    try:
-        from app.tasks import send_monthly_certificate_report
-        env = getattr(g, 'db_bind', 'live')
-        send_monthly_certificate_report(env)
-        return jsonify({'success': True, 'message': f'Report ({env}) odeslán'})
-    except Exception as e:
-        current_app.logger.error(f"Chyba při odesílání reportu: {str(e)}")
-        return jsonify({'success': False, 'message': f'Chyba: {str(e)}'}), 500
-
-
 @bp.route('/smazat-vybrane', methods=['POST'])
 def smazat_vybrane():
     """Bulk delete: accepts JSON { ids: [1, 2, 3] }"""

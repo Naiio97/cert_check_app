@@ -21,17 +21,45 @@ def _engine(env: str):
         return db.get_engine(current_app, bind=env)
 
 
-def _send_email(subject: str, text_body: str, html_body: str | None = None, recipients: list[str] | None = None):
+def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
+    """Odešle email. Konfigurace: DB Settings > .env Config."""
     cfg = current_app.config
-    username = cfg.get("MAIL_USERNAME") or None
-    password = cfg.get("MAIL_PASSWORD") or None
-    
-    if recipients is None:
+
+    # Načtení konfigurace (Priorita: DB > ENV)
+    db_server = Settings.get('mail_server')
+    db_port = Settings.get('mail_port')
+    db_tls = Settings.get('mail_use_tls')  # 'True'/'False'/None
+    db_user = Settings.get('mail_username')
+    db_pass = Settings.get('mail_password')
+    db_sender = Settings.get('mail_sender_address')
+
+    server_host = db_server if db_server else cfg.get("MAIL_SERVER", "localhost")
+    try:
+        server_port = int(db_port) if db_port else int(cfg.get("MAIL_PORT", 25))
+    except ValueError:
+        server_port = 25
+
+    if db_tls is not None:
+        use_tls = (db_tls == 'True')
+    else:
+        use_tls = cfg.get("MAIL_USE_TLS")
+        if isinstance(use_tls, str):
+            use_tls = use_tls.lower() == 'true'
+        elif not isinstance(use_tls, bool):
+            use_tls = False
+
+    username = db_user if db_user else cfg.get("MAIL_USERNAME")
+    password = db_pass if db_pass else cfg.get("MAIL_PASSWORD")
+    sender_addr = db_sender if db_sender else cfg.get("MAIL_SENDER_ADDRESS") or "noreply@example.com"
+    sender_name = cfg.get("MAIL_SENDER_NAME") # Sender name stays in env for now? Or derived?
+
+    if not recipients:
         recipients_raw = cfg.get("MAIL_RECIPIENTS")
         if not recipients_raw:
             current_app.logger.warning("MAIL_RECIPIENTS není nastaveno; e-mail neodeslán")
             return
         recipients = [r.strip() for r in recipients_raw.split(",") if r.strip()]
+
     if html_body:
         msg = MIMEMultipart('alternative')
         part_text = MIMEText(text_body, 'plain', _charset='utf-8')
@@ -40,23 +68,31 @@ def _send_email(subject: str, text_body: str, html_body: str | None = None, reci
         msg.attach(part_html)
     else:
         msg = MIMEText(text_body, _charset="utf-8")
+
     subject_prefix = cfg.get("MAIL_SUBJECT_PREFIX", "")
     msg["Subject"] = f"{subject_prefix} {subject}".strip()
-    sender_addr = cfg.get("MAIL_SENDER_ADDRESS") or username or "noreply@example.com"
-    sender_name = cfg.get("MAIL_SENDER_NAME")
     msg["From"] = f"{sender_name} <{sender_addr}>" if sender_name else sender_addr
     msg["To"] = ", ".join(recipients)
+
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(cfg.get("MAIL_SERVER", "localhost"), cfg.get("MAIL_PORT", 25)) as server:
-            if cfg.get("MAIL_USE_TLS", False):
+        # Pokud je localhost a port 25, často bez TLS/Auth.
+        # Ale respektujeme nastavení.
+        with smtplib.SMTP(server_host, server_port) as server:
+            # EHLO/HELO
+            server.ehlo()
+            if use_tls:
                 server.starttls(context=context)
-            if cfg.get("MAIL_SMTP_AUTH", False) and username and password:
+                server.ehlo()
+            
+            if username and password:
                 server.login(username, password)
+            
             server.sendmail(sender_addr, recipients, msg.as_string())
-        current_app.logger.info("E-mail odeslán: %s", subject)
+        
+        current_app.logger.info("E-mail odeslán: %s (Server: %s:%d)", subject, server_host, server_port)
     except Exception as e:
-        current_app.logger.error("Chyba při odesílání e-mailu: %s", e)
+        current_app.logger.error("Chyba při odesílání e-mailu (%s:%d): %s", server_host, server_port, e)
 
 
 def send_daily_certificate_alert(env: str):
