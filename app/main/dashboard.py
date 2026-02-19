@@ -10,12 +10,13 @@ def index():
         today = datetime.now().date()
         
         ending_certs = Certifikat.query.filter(
-            Certifikat.expirace.between(today, datetime(today.year, 12, 31).date())
+            Certifikat.expirace <= datetime(today.year, 12, 31).date()
         ).order_by(Certifikat.expirace).all()
         
         # Spočítáme statistiky
         stats = {
-            'critical': sum(1 for cert in ending_certs if (cert.expirace - today).days <= 30),
+            'expired': sum(1 for cert in ending_certs if (cert.expirace - today).days < 0),
+            'critical': sum(1 for cert in ending_certs if 0 <= (cert.expirace - today).days <= 30),
             'warning': sum(1 for cert in ending_certs if 30 < (cert.expirace - today).days <= 60),
             'this_year': len(ending_certs)
         }

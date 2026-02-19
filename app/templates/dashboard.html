@@ -15,19 +15,24 @@
     <!-- Statistiky -->
     <div class="stats-container">
         <div class="stat-box cert-expired">
+            <h3>Vypršelé</h3>
+            <p>{{ stats.expired }}</p>
+            <small>již po expiraci</small>
+        </div>
+        <div class="stat-box cert-expired">
             <h3>Kritické</h3>
             <p>{{ stats.critical }}</p>
-            <small>končí tento měsíc</small>
+            <small>končí do 30 dnů</small>
         </div>
         <div class="stat-box cert-warning">
             <h3>Varování</h3>
             <p>{{ stats.warning }}</p>
-            <small>končí příští měsíc</small>
+            <small>končí do 60 dnů</small>
         </div>
         <div class="stat-box cert-ending-year">
             <h3>Tento rok</h3>
             <p>{{ stats.this_year }}</p>
-            <small>končí tento rok</small>
+            <small>celkem (vč. vypršelých)</small>
         </div>
     </div>
 

@@ -151,11 +151,12 @@ def send_test_email(to_email: str):
     _send_email(subject, text_body, html_body, recipients=[to_email])
 
 def send_monthly_certificate_report(env: str):
-    """Odešle report pro aktuální i následující měsíc."""
+    """Odešle report: vypršelé + aktuální měsíc + následující měsíc."""
     today = date.today()
+    yesterday = today - timedelta(days=1)
     # Rozmezí aktuálního měsíce
-    _, last_day_cur = calendar.monthrange(today.year, today.month)
     cur_start = date(today.year, today.month, 1)
+    _, last_day_cur = calendar.monthrange(today.year, today.month)
     cur_end = date(today.year, today.month, last_day_cur)
     # Rozmezí následujícího měsíce
     next_year = today.year + 1 if today.month == 12 else today.year
@@ -164,12 +165,24 @@ def send_monthly_certificate_report(env: str):
     next_start = date(next_year, next_month, 1)
     next_end = date(next_year, next_month, last_day_next)
     try:
+        # 3 oddělené dotazy
+        rows_expired = Certifikat.fetch_between(env, date(2000, 1, 1), yesterday)
         rows_cur = Certifikat.fetch_between(env, cur_start, cur_end)
         rows_next = Certifikat.fetch_between(env, next_start, next_end)
 
-        # Vždy odeslat report (i prázdný)
+        no_empty = '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
+
         # Textová verze
         lines = [f"Report končících certifikátů ({env.upper()}):", ""]
+
+        if rows_expired:
+            lines.append(f"Vypršelé certifikáty ({len(rows_expired)}):")
+            for r in rows_expired:
+                exp = format_date(r["expirace"])
+                left = (exp - today).days
+                lines.append(f"! {r['server']} | {r['cesta']} | {r['nazev']} | {exp.strftime('%d.%m.%Y')} | {left} dní")
+            lines.append("")
+
         lines.append(f"Aktuální měsíc ({today.month}.{today.year}):")
         if rows_cur:
             for r in rows_cur:
@@ -179,6 +192,7 @@ def send_monthly_certificate_report(env: str):
         else:
             lines.append("- žádné položky")
         lines.append("")
+
         lines.append(f"Následující měsíc ({next_month}.{next_year}):")
         if rows_next:
             for r in rows_next:
@@ -188,25 +202,27 @@ def send_monthly_certificate_report(env: str):
         else:
             lines.append("- žádné položky")
         
-        # Pokud je vše prázdné, přidáme pozitivní zprávu
-        if not rows_cur and not rows_next:
+        if not rows_expired and not rows_cur and not rows_next:
             lines.append("")
             lines.append("Vše v pořádku, žádné certifikáty neexpirují.")
 
         text_body = "\n".join(lines)
 
-        # HTML verze – dvě tabulky
+        # HTML verze
         critical_days = int(Settings.get('alert_days_critical', '30'))
         sections = []
-        cur_table = build_rows_html(rows_cur, today, critical_days) if rows_cur else '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
-        next_table = build_rows_html(rows_next, today, critical_days) if rows_next else '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
+        if rows_expired:
+            expired_table = build_rows_html(rows_expired, today, critical_days)
+            sections.append((f"Vypršelé ({len(rows_expired)})", expired_table))
+        cur_table = build_rows_html(rows_cur, today, critical_days) if rows_cur else no_empty
+        next_table = build_rows_html(rows_next, today, critical_days) if rows_next else no_empty
         sections.append((cz_month_name(today), cur_table))
         sections.append((cz_month_name(date(next_year, next_month, 1)), next_table))
         
         env_upper = env.upper()
-        # Barvy hlavičky podle prostředí: LIVE = červená, TEST/UAT = zelená
         title_color = '#dc2626' if env_upper == 'LIVE' else '#16a34a'
-        stats = {'critical': len(rows_cur), 'warning': len(rows_next), 'total': len(rows_cur) + len(rows_next)}
+        total = len(rows_expired) + len(rows_cur) + len(rows_next)
+        stats = {'critical': len(rows_expired), 'warning': len(rows_cur), 'total': total}
         
         html_body = wrap_email_html(
             f"[{env_upper}] Měsíční report končících certifikátů",
@@ -215,9 +231,9 @@ def send_monthly_certificate_report(env: str):
             stats=stats
         )
 
-        _send_email(f"[{env.upper()}] Měsíční report (aktuální + další měsíc)", text_body, html_body)
+        _send_email(f"[{env.upper()}] Měsíční report certifikátů", text_body, html_body)
         current_app.logger.info(
-            "Report odeslán pro %s (aktuální: %d, další: %d)", env, len(rows_cur), len(rows_next)
+            "Report odeslán pro %s (vypršelé: %d, aktuální: %d, další: %d)", env, len(rows_expired), len(rows_cur), len(rows_next)
         )
 
     except Exception as e:
