@@ -76,8 +76,10 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
 
     try:
         context = ssl.create_default_context()
-        # Pokud je localhost a port 25, často bez TLS/Auth.
-        # Ale respektujeme nastavení.
+        current_app.logger.info(
+            "SMTP odesílám: server=%s:%d, from=%s, to=%s, tls=%s, auth=%s, subject='%s'",
+            server_host, server_port, sender_addr, recipients, use_tls, bool(username and password), subject
+        )
         with smtplib.SMTP(server_host, server_port) as server:
             # EHLO/HELO
             server.ehlo()
@@ -88,11 +90,14 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
             if username and password:
                 server.login(username, password)
             
-            server.sendmail(sender_addr, recipients, msg.as_string())
+            result = server.sendmail(sender_addr, recipients, msg.as_string())
+            if result:
+                current_app.logger.warning("SMTP partial failure: %s", result)
         
-        current_app.logger.info("E-mail odeslán: %s (Server: %s:%d)", subject, server_host, server_port)
+        current_app.logger.info("E-mail úspěšně odeslán: %s → %s (Server: %s:%d)", subject, recipients, server_host, server_port)
     except Exception as e:
         current_app.logger.error("Chyba při odesílání e-mailu (%s:%d): %s", server_host, server_port, e)
+
 
 
 def send_daily_certificate_alert(env: str):

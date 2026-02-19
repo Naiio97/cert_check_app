@@ -87,8 +87,8 @@ def wrap_email_html(title: str, sections: list[tuple[str, str]], title_color: st
         # Table-based layout for Outlook compatibility
         parts.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-bottom:1px solid #f1f5f9"><tr>')
         stat_items = [
-            ('Kritické', stats.get('critical', 0), '#dc2626', '#fef2f2'),
-            ('Varování', stats.get('warning', 0), '#ea580c', '#fff7ed'),
+            ('Kritické', stats.get('critical', 0), '#dc2626', '#eff6ff'),
+            ('Varování', stats.get('warning', 0), '#ea580c', '#eff6ff'),
             ('Celkem', stats.get('total', 0), '#3b82f6', '#eff6ff'),
         ]
         

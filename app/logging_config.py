@@ -68,11 +68,12 @@ def setup_ultimate_logging(app):
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
-    # Nastavíme i logger aplikace
+    # Nastavíme i logger aplikace (propagate=False aby se nezdvojovaly záznamy)
     app.logger.handlers = []
     app.logger.setLevel(logging.DEBUG)
     app.logger.addHandler(file_handler)
     app.logger.addHandler(console_handler)
+    app.logger.propagate = False
     
     # Potlačení příliš upovídaných knihoven
     logging.getLogger('werkzeug').setLevel(logging.INFO)

@@ -1,8 +1,20 @@
-from flask import Blueprint, render_template, current_app, jsonify, request
+from flask import Blueprint, render_template, current_app, jsonify, request, g
 from app.models import Certifikat, Server
 from datetime import datetime
 
 bp = Blueprint('main', __name__)
+
+@bp.route('/send-report', methods=['POST'])
+def send_report():
+    """Ručně odešle měsíční report (stejný jako automatický)."""
+    try:
+        from app.tasks import send_monthly_certificate_report
+        env = getattr(g, 'db_bind', 'live')
+        send_monthly_certificate_report(env)
+        return jsonify({'message': f'Report pro {env.upper()} odeslán'})
+    except Exception as e:
+        current_app.logger.error(f'Chyba při odesílání reportu: {e}')
+        return jsonify({'message': f'Chyba: {e}'}), 500
 
 @bp.before_request
 def log_request():
