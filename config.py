@@ -10,8 +10,10 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'fallback-zmenit-v-produkci'
     # Databáze: výchozí live + bindy pro live/test
     SQLALCHEMY_BINDS = {
-        'live': 'sqlite:///certifikaty.db',
-        'test': 'sqlite:///certifikaty_test.db'
+        'live':    'sqlite:///certifikaty.db',
+        'test':    'sqlite:///certifikaty_test.db',
+        'sit':     'sqlite:///certifikaty_sit.db',
+        'prelive': 'sqlite:///certifikaty_prelive.db',
     }
     SQLALCHEMY_DATABASE_URI = SQLALCHEMY_BINDS['live']
     SQLALCHEMY_TRACK_MODIFICATIONS = False

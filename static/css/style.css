@@ -48,6 +48,18 @@ body.env-test {
     --env-accent: #3da35d;
 }
 
+/* SIT environment — soft orange */
+body.env-sit {
+    --env-bg: linear-gradient(160deg, #fef3e8 0%, #fdf0e0 30%, #faeae0 60%, #fef3e8 100%);
+    --env-accent: #d97706;
+}
+
+/* PRELIVE environment — soft purple */
+body.env-prelive {
+    --env-bg: linear-gradient(160deg, #f3eefe 0%, #ede8fb 30%, #e8ecf8 60%, #f3eefe 100%);
+    --env-accent: #7c3aed;
+}
+
 /* ─── Reset ─── */
 *,
 *::before,
@@ -152,6 +164,18 @@ body::before {
     border: 1.5px solid rgba(61, 163, 93, 0.3);
 }
 
+.env-badge.env-sit {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+    border: 1.5px solid rgba(217, 119, 6, 0.3);
+}
+
+.env-badge.env-prelive {
+    background: rgba(124, 58, 237, 0.12);
+    color: #6d28d9;
+    border: 1.5px solid rgba(124, 58, 237, 0.3);
+}
+
 /* ═══ NAVIGATION ═══ */
 .app-nav {
     display: flex;
@@ -233,6 +257,18 @@ body::before {
     background: rgba(61, 163, 93, 0.15);
     color: #2d8049;
     border: 1.5px solid rgba(61, 163, 93, 0.3);
+}
+
+.env-btn[data-env="sit"].active {
+    background: rgba(217, 119, 6, 0.15);
+    color: #b45309;
+    border: 1.5px solid rgba(217, 119, 6, 0.3);
+}
+
+.env-btn[data-env="prelive"].active {
+    background: rgba(124, 58, 237, 0.15);
+    color: #6d28d9;
+    border: 1.5px solid rgba(124, 58, 237, 0.3);
 }
 
 .env-btn:hover:not(.active) {

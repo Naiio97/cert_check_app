@@ -7,7 +7,7 @@ app = create_app()
 # Vytvoření databáze
 with app.app_context():
     # Vytvoříme tabulky pro obě databáze (live/test) přímo přes metadata
-    for env in ('live', 'test'):
+    for env in ('live', 'test', 'sit', 'prelive'):
         try:
             engine = db.engines[env]
             db.metadata.create_all(bind=engine)

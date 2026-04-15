@@ -17,7 +17,7 @@
         <div class="brand">
             <i class="fas fa-certificate"></i>
             <span>Správa certifikátů</span>
-            <span class="env-badge {% if is_live %}env-live{% else %}env-test{% endif %}" title="Aktivní prostředí">
+            <span class="env-badge env-{{ current_env }}" title="Aktivní prostředí">
                 {{ current_env|upper }}
             </span>
         </div>
@@ -54,6 +54,8 @@
             </a>
             <div class="env-switch">
                 <button class="env-btn" data-env="live">Live</button>
+                <button class="env-btn" data-env="prelive">Prelive</button>
+                <button class="env-btn" data-env="sit">SIT</button>
                 <button class="env-btn" data-env="test">Test</button>
             </div>
 
