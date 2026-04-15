@@ -4,15 +4,19 @@ from flask import redirect
 
 app = create_app()
 
-# Vytvoření databáze
+# Vytvoření databáze — zajistíme tabulky ve všech bindech
 with app.app_context():
-    # Vytvoříme tabulky pro obě databáze (live/test) přímo přes metadata
+    from flask import current_app
     for env in ('live', 'test', 'sit', 'prelive'):
         try:
-            engine = db.engines[env]
+            try:
+                engine = db.engines[env]
+            except Exception:
+                engine = db.get_engine(current_app, bind=env)
             db.metadata.create_all(bind=engine)
-        except Exception:
-            pass
+            app.logger.info('DB init OK: %s', env)
+        except Exception as e:
+            app.logger.warning('DB init selhalo pro %s: %s', env, e)
 
 @app.route('/', endpoint='root')
 def root_redirect():
