@@ -5,7 +5,7 @@ from flask import current_app
 
 
 class Server(db.Model):
-    __bind_key__ = None  # bude nastaveno za běhu
+    __bind_key__ = 'live'
     id = db.Column(db.Integer, primary_key=True)
     nazev = db.Column(db.String(100), unique=True, nullable=False)
     popis = db.Column(db.Text)
@@ -13,7 +13,7 @@ class Server(db.Model):
 
 
 class Certifikat(db.Model):
-    __bind_key__ = None  # bude nastaveno za běhu
+    __bind_key__ = 'live'
     id = db.Column(db.Integer, primary_key=True)
     server = db.Column(db.String(100), db.ForeignKey('server.nazev'), nullable=False)
     cesta = db.Column(db.String(200), nullable=False)
@@ -70,7 +70,7 @@ class Certifikat(db.Model):
 
 
 class AuditLog(db.Model):
-    __bind_key__ = None  # bude nastaveno za běhu
+    __bind_key__ = 'live'
     id = db.Column(db.Integer, primary_key=True)
     akce = db.Column(db.String(20), nullable=False)       # pridano / upraveno / smazano
     certifikat_nazev = db.Column(db.String(100))
@@ -80,7 +80,7 @@ class AuditLog(db.Model):
 
 
 class Settings(db.Model):
-    __bind_key__ = None  # bude nastaveno za běhu
+    __bind_key__ = 'live'
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.String(500), nullable=False)

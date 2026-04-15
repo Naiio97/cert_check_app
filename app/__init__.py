@@ -83,19 +83,11 @@ def create_app(config_class=Config):
     @app.before_request
     def select_db_bind():
         # Zvolené prostředí z cookie (live/test), výchozí live
+        # RoutingSession.get_bind() čte g.db_bind per-request — thread-safe
         env = request.cookies.get('env') or 'live'
         if env not in ('live', 'test'):
             env = 'live'
         g.db_bind = env
-        # Nastavíme bind pro ORM modely podle zvoleného prostředí
-        try:
-            from app.models import Server, Certifikat, AuditLog, Settings
-            Server.__bind_key__ = env
-            Certifikat.__bind_key__ = env
-            AuditLog.__bind_key__ = env
-            Settings.__bind_key__ = env
-        except Exception:
-            app.logger.warning('Nepodařilo se nastavit __bind_key__ pro env=%s', env)
     
 
     # Nastavení pokročilého logování (musí být před schedulerem, aby se logy zachytily)
