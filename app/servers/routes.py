@@ -73,7 +73,16 @@ def upravit_server(id):
     
     if request.method == 'POST':
         try:
-            server.nazev = request.form.get('nazev')
+            stary_nazev = server.nazev
+            novy_nazev = request.form.get('nazev')
+
+            # Pokud se název změnil, aktualizuj certifikáty
+            if stary_nazev != novy_nazev:
+                Certifikat.query.filter_by(server=stary_nazev).update(
+                    {'server': novy_nazev}
+                )
+
+            server.nazev = novy_nazev
             server.popis = request.form.get('popis')
             
             db.session.commit()
