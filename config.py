@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     APPLICATION_ROOT = '/evidence_certifikatu'
-    DEBUG = True
+    DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'fallback-zmenit-v-produkci'
     # Databáze: výchozí live + bindy pro live/test
     SQLALCHEMY_BINDS = {

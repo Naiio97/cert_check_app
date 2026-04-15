@@ -47,7 +47,7 @@ def pridat_certifikat():
             return render_template('formular.html', certifikat=None, servery=servery, error_field='expirace')
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f'Chyba při přidávání certifikátu: {str(e)}')
+            current_app.logger.error('Chyba při přidávání certifikátu: %s', e)
             flash(f'Chyba při přidávání certifikátu: {str(e)}')
             servery = Server.query.all()
             return render_template('formular.html', certifikat=None, servery=servery)
@@ -62,7 +62,7 @@ def get_edit_form(id):
         servery = Server.query.all()
         return render_template('edit_modal.html', certifikat=certifikat, servery=servery)
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání editačního formuláře: {str(e)}')
+        current_app.logger.error('Chyba při načítání editačního formuláře: %s', e)
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/upravit/<int:id>', methods=['GET', 'POST'])
@@ -98,7 +98,7 @@ def upravit_certifikat(id):
             return render_template('formular.html', certifikat=certifikat, servery=servery, error_field='expirace')
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f'Chyba při úpravě certifikátu: {str(e)}')
+            current_app.logger.error('Chyba při úpravě certifikátu: %s', e)
             flash(f'Chyba při úpravě certifikátu: {str(e)}', 'error')
             return render_template('formular.html', certifikat=certifikat, servery=servery)
     
@@ -110,7 +110,7 @@ def upravit_certifikat(id):
 def smazat_certifikat(id):
     try:
         certifikat = Certifikat.query.get_or_404(id)
-        current_app.logger.info(f'Mazání certifikátu: {certifikat.nazev} ze serveru {certifikat.server}')
+        current_app.logger.info('Mazání certifikátu: %s ze serveru %s', certifikat.nazev, certifikat.server)
         db.session.add(AuditLog(
             akce='smazano',
             certifikat_nazev=certifikat.nazev,
@@ -121,7 +121,7 @@ def smazat_certifikat(id):
         db.session.commit()
         flash('Certifikát byl smazán!')
     except Exception as e:
-        current_app.logger.error(f'Chyba při mazání certifikátu: {str(e)}')
+        current_app.logger.error('Chyba při mazání certifikátu: %s', e)
         flash(f'Chyba při mazání certifikátu: {str(e)}')
     return redirect(url_for('main.index'))
 
@@ -139,7 +139,7 @@ def import_excel():
             return jsonify({'error': 'Nebyl vybrán žádný soubor'}), 400
         
         if not allowed_file(file.filename):
-            current_app.logger.warning(f'Nepovolený typ souboru: {file.filename}')
+            current_app.logger.warning('Nepovolený typ souboru: %s', file.filename)
             return jsonify({'error': 'Nepovolený typ souboru'}), 400
         
         filename = secure_filename(file.filename)
@@ -203,7 +203,7 @@ def import_excel():
         })
         
     except Exception as e:
-        current_app.logger.error(f'Chyba při importu: {str(e)}', exc_info=True)
+        current_app.logger.error('Chyba při importu: %s', e, exc_info=True)
         return jsonify({
             'success': False,
             'message': f'Chyba při importu: {str(e)}'
@@ -317,18 +317,23 @@ def export_excel():
         
         # Export
         with NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-            filename = os.path.basename(tmp.name)
-            wb.save(tmp.name)
-            
+            tmp_path = tmp.name
+        try:
+            wb.save(tmp_path)
             return send_from_directory(
-                directory=os.path.dirname(tmp.name),
-                path=filename,
+                directory=os.path.dirname(tmp_path),
+                path=os.path.basename(tmp_path),
                 as_attachment=True,
                 download_name=f"certifikaty_export_{datetime.now().strftime('%Y%m%d')}.xlsx"
             )
-            
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
     except Exception as e:
-        current_app.logger.error(f'Chyba při exportu do Excelu: {str(e)}')
+        current_app.logger.error('Chyba při exportu do Excelu: %s', e)
         flash(f'Chyba při exportu do Excelu: {str(e)}', 'error')
         return redirect(url_for('main.index'))
 
@@ -353,7 +358,7 @@ def smazat_vse():
         db.session.commit()
         flash(f'Data byla smazána v prostředí: {env.upper()}!')
     except Exception as e:
-        current_app.logger.error(f'Chyba při mazání ({env}): {str(e)}')
+        current_app.logger.error('Chyba při mazání (%s): %s', env, e)
         flash(f'Chyba při mazání: {str(e)}', 'error')
     return redirect(url_for('main.index'))
 
@@ -363,7 +368,7 @@ def detail_certifikatu(id):
         certifikat = Certifikat.query.get_or_404(id)
         return render_template('detail_modal.html', certifikat=certifikat)
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání detailu: {str(e)}')
+        current_app.logger.error('Chyba při načítání detailu: %s', e)
         return f'Chyba při načítání detailu: {str(e)}', 500
 
 @bp.route('/server/<server>')
@@ -399,7 +404,7 @@ def get_certifikaty_server(server):
             }
         })
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání certifikátů: {str(e)}')
+        current_app.logger.error('Chyba při načítání certifikátů: %s', e)
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/smazat-vybrane', methods=['POST'])
@@ -427,7 +432,7 @@ def smazat_vybrane():
         return jsonify({'success': True, 'message': f'Smazáno {count} certifikátů'})
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f'Chyba při hromadném mazání: {str(e)}')
+        current_app.logger.error('Chyba při hromadném mazání: %s', e)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -466,17 +471,21 @@ def export_vybrane():
             max_len = max(len(str(cell.value or '')) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
 
-        tmp = NamedTemporaryFile(delete=False, suffix='.xlsx')
-        wb.save(tmp.name)
-        tmp.close()
-
-        import os
-        return send_from_directory(
-            os.path.dirname(tmp.name),
-            os.path.basename(tmp.name),
-            as_attachment=True,
-            download_name='vybrane_certifikaty.xlsx'
-        )
+        with NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            tmp_path = tmp.name
+        try:
+            wb.save(tmp_path)
+            return send_from_directory(
+                os.path.dirname(tmp_path),
+                os.path.basename(tmp_path),
+                as_attachment=True,
+                download_name='vybrane_certifikaty.xlsx'
+            )
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
     except Exception as e:
-        current_app.logger.error(f'Chyba při exportu vybraných: {str(e)}')
+        current_app.logger.error('Chyba při exportu vybraných: %s', e)
         return jsonify({'success': False, 'message': str(e)}), 500

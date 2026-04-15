@@ -4,14 +4,14 @@ from app import db
 def register_error_handlers(app):
     @app.errorhandler(404)
     def not_found_error(error):
-        app.logger.error(f'Stránka nenalezena: {request.url}')
-        return f"Stránka nenalezena: {request.url}", 404
+        app.logger.error('Stránka nenalezena: %s', request.url)
+        return render_template('404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):
-        app.logger.error(f'Interní chyba serveru: {str(error)}', exc_info=True)
+        app.logger.error('Interní chyba serveru: %s', error, exc_info=True)
         db.session.rollback()
-        return "Interní chyba serveru", 500
+        return render_template('500.html'), 500
 
     @app.errorhandler(413)
     def too_large(error):

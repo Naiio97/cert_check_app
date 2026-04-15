@@ -13,12 +13,12 @@ def send_report():
         send_monthly_certificate_report(env)
         return jsonify({'message': f'Report pro {env.upper()} odeslán'})
     except Exception as e:
-        current_app.logger.error(f'Chyba při odesílání reportu: {e}')
+        current_app.logger.error('Chyba při odesílání reportu: %s', e)
         return jsonify({'message': f'Chyba: {e}'}), 500
 
 @bp.before_request
 def log_request():
-    current_app.logger.info(f"Request: {request.method} {request.path} (referrer: {request.referrer})")
+    current_app.logger.info('Request: %s %s (referrer: %s)', request.method, request.path, request.referrer)
 
 @bp.route('/')
 def index():
@@ -49,7 +49,7 @@ def index():
                              pagination=pagination)
                              
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání hlavní stránky: {str(e)}')
+        current_app.logger.error('Chyba při načítání hlavní stránky: %s', e)
         return f"Došlo k chybě: {str(e)}", 500 
 
 @bp.route('/detail/<int:id>')
@@ -61,5 +61,5 @@ def detail(id):
                               certifikat=certifikat,
                               today=today)  # Předáme today do šablony
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání detailu: {str(e)}')
+        current_app.logger.error('Chyba při načítání detailu: %s', e)
         return jsonify({'error': str(e)}), 500

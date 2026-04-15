@@ -15,5 +15,5 @@ def index():
                              logs=pagination.items,
                              pagination=pagination)
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání historie: {str(e)}')
+        current_app.logger.error('Chyba při načítání historie: %s', e)
         return render_template('historie.html', logs=[], pagination=None)

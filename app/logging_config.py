@@ -32,14 +32,12 @@ def setup_ultimate_logging(app):
     
     # 1. Základní složka pro logy
     log_base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-    if not os.path.exists(log_base_dir):
-        os.makedirs(log_base_dir)
-        
+    os.makedirs(log_base_dir, exist_ok=True)
+
     # 2. Složka pro dnešní den
     today_str = datetime.now().strftime('%Y-%m-%d')
     daily_log_dir = os.path.join(log_base_dir, today_str)
-    if not os.path.exists(daily_log_dir):
-        os.makedirs(daily_log_dir)
+    os.makedirs(daily_log_dir, exist_ok=True)
         
     log_file = os.path.join(daily_log_dir, 'app.log')
     
@@ -79,7 +77,7 @@ def setup_ultimate_logging(app):
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
     
-    app.logger.info(f'Ultimate logging initialized. Log file: {log_file}')
+    app.logger.info('Ultimate logging initialized. Log file: %s', log_file)
     
     # 7. Global Exception Hook
     def handle_exception(exc_type, exc_value, exc_traceback):
