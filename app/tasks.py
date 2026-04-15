@@ -235,6 +235,8 @@ def send_monthly_certificate_report(env: str):
         current_app.logger.info(
             "Report odeslán pro %s (vypršelé: %d, aktuální: %d, další: %d)", env, len(rows_expired), len(rows_cur), len(rows_next)
         )
+        # Uložíme datum odeslání, aby startup check věděl, že report už byl dnes odeslán
+        Settings.set(f'monthly_report_last_sent_{env}', today.isoformat())
 
     except Exception as e:
         current_app.logger.error("Chyba při generování měsíčního reportu (%s): %s", env, e)
@@ -314,4 +316,25 @@ def init_scheduler(app):
         for idx, env in enumerate(envs)
     ])
     app.logger.info("Plánovač úloh inicializován (envs=%s | %s)", ','.join(envs), when_str)
+
+    # Startup check: pokud dnes je den reportu a report ještě nebyl odeslán, spustíme ihned.
+    # Řeší případ kdy aplikace spadla/restartovala po plánovaném čase (APScheduler by jinak
+    # čekal až na příští měsíc).
+    today = date.today()
+    if today.day == month_day:
+        with app.app_context():
+            for env in envs:
+                last_sent = Settings.get(f'monthly_report_last_sent_{env}')
+                if last_sent != today.isoformat():
+                    app.logger.info(
+                        'Startup check: report pro %s dnes nebyl odeslán (naposledy: %s) – spouštím ihned',
+                        env, last_sent or 'nikdy'
+                    )
+                    scheduler.add_job(
+                        _run_monthly,
+                        id=f'monthly_startup_{env}',
+                        replace_existing=True,
+                        args=[env],
+                    )
+
     return scheduler
