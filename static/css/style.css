@@ -42,21 +42,21 @@
     --env-accent: #dc6b6b;
 }
 
-/* TEST environment — soft green */
-body.env-test {
+/* UAT environment — soft green */
+body.env-uat {
     --env-bg: linear-gradient(160deg, #edf7ef 0%, #e8f4f0 30%, #eaf0f8 60%, #eff7f0 100%);
     --env-accent: #3da35d;
 }
 
-/* SIT environment — soft orange */
+/* SIT environment — soft amber */
 body.env-sit {
-    --env-bg: linear-gradient(160deg, #fef3e8 0%, #fdf0e0 30%, #faeae0 60%, #fef3e8 100%);
+    --env-bg: linear-gradient(160deg, #fdf6f0 0%, #f5f0e8 30%, #eaeff8 60%, #f5f0e8 100%);
     --env-accent: #d97706;
 }
 
 /* PRELIVE environment — soft purple */
 body.env-prelive {
-    --env-bg: linear-gradient(160deg, #f3eefe 0%, #ede8fb 30%, #e8ecf8 60%, #f3eefe 100%);
+    --env-bg: linear-gradient(160deg, #f3effe 0%, #ece8f8 30%, #eaeff8 60%, #f0eefe 100%);
     --env-accent: #7c3aed;
 }
 
@@ -158,7 +158,7 @@ body::before {
     border: 1.5px solid rgba(220, 107, 107, 0.3);
 }
 
-.env-badge.env-test {
+.env-badge.env-uat {
     background: rgba(61, 163, 93, 0.12);
     color: #2d8049;
     border: 1.5px solid rgba(61, 163, 93, 0.3);
@@ -253,7 +253,7 @@ body::before {
     border: 1.5px solid rgba(220, 107, 107, 0.3);
 }
 
-.env-btn[data-env="test"].active {
+.env-btn[data-env="uat"].active {
     background: rgba(61, 163, 93, 0.15);
     color: #2d8049;
     border: 1.5px solid rgba(61, 163, 93, 0.3);

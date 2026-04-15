@@ -11,7 +11,7 @@ with app.app_context():
     from flask import current_app
     # Flask-SQLAlchemy 3.x: tabulky jsou v metadatě příslušného bind_key
     live_meta = db.metadatas.get('live') if hasattr(db, 'metadatas') else db.metadata
-    for env in ('live', 'test', 'sit', 'prelive'):
+    for env in ('live', 'uat', 'sit', 'prelive'):
         try:
             try:
                 engine = db.engines[env]

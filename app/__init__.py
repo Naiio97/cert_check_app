@@ -13,7 +13,7 @@ class RoutingSession(_FsaSession):
     """Směruje ORM operace na bind podle cookie env (live/test)."""
     def get_bind(self, mapper=None, clause=None, bind=None, **kwargs):
         env = getattr(g, 'db_bind', None)
-        if env in ('live', 'test', 'sit', 'prelive'):
+        if env in ('live', 'uat', 'sit', 'prelive'):
             return db.get_engine(current_app, bind=env)
         return super().get_bind(mapper=mapper, clause=clause, bind=bind, **kwargs)
 
@@ -77,7 +77,7 @@ def create_app(config_class=Config):
         return {
             'current_env': env,
             'is_live':    env == 'live',
-            'is_test':    env == 'test',
+            'is_uat':     env == 'uat',
             'is_sit':     env == 'sit',
             'is_prelive': env == 'prelive',
         }
@@ -87,7 +87,7 @@ def create_app(config_class=Config):
         # Zvolené prostředí z cookie (live/test), výchozí live
         # RoutingSession.get_bind() čte g.db_bind per-request — thread-safe
         env = request.cookies.get('env') or 'live'
-        if env not in ('live', 'test', 'sit', 'prelive'):
+        if env not in ('live', 'uat', 'sit', 'prelive'):
             env = 'live'
         g.db_bind = env
     

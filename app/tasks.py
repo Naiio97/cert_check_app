@@ -280,7 +280,7 @@ def init_scheduler(app):
     raw_envs = (app.config.get('REPORT_ENVS') or os.environ.get('REPORT_ENVS') or 'live,test')
     envs = [e.strip().lower() for e in raw_envs.split(',') if e.strip()]
     # map aliases a odfiltruj neznámé hodnoty, zachovej pořadí a unikátnost
-    _alias = {'uat': 'test', 'test': 'test', 'live': 'live', 'prod': 'live', 'production': 'live', 'sit': 'sit', 'prelive': 'prelive'}
+    _alias = {'uat': 'uat', 'test': 'uat', 'live': 'live', 'prod': 'live', 'production': 'live', 'sit': 'sit', 'prelive': 'prelive'}
     mapped = [_alias.get(e) for e in envs]
     envs = []
     for m in mapped:

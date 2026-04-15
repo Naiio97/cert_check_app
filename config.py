@@ -11,7 +11,7 @@ class Config:
     # Databáze: výchozí live + bindy pro live/test
     SQLALCHEMY_BINDS = {
         'live':    'sqlite:///certifikaty.db',
-        'test':    'sqlite:///certifikaty_test.db',
+        'uat':     'sqlite:///certifikaty_uat.db',
         'sit':     'sqlite:///certifikaty_sit.db',
         'prelive': 'sqlite:///certifikaty_prelive.db',
     }
