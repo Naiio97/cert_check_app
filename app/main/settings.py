@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from app.models import Settings
 from app import db
 import os
-from app.models import Certifikat
 from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html
 from datetime import date
 import calendar
@@ -18,7 +17,7 @@ def index():
         all_settings = Settings.query.all()
         settings_dict = {s.key: s.value for s in all_settings}
     except Exception:
-        pass
+        current_app.logger.warning('Nepodařilo se načíst nastavení z DB')
 
     report_day = os.environ.get('REPORT_DAY', '1')
     report_hour = os.environ.get('REPORT_HOUR', '9')
@@ -56,7 +55,7 @@ def save():
     except ValueError:
         flash('Neplatné hodnoty', 'error')
     except Exception as e:
-        current_app.logger.error(f'Chyba při ukládání nastavení: {str(e)}')
+        current_app.logger.error('Chyba při ukládání nastavení: %s', e)
         flash(f'Chyba: {str(e)}', 'error')
 
     return redirect(url_for('settings.index'))
@@ -80,7 +79,7 @@ def save_smtp():
         flash('SMTP konfigurace uložena.', 'success')
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f'Chyba při ukládání SMTP: {str(e)}')
+        current_app.logger.error('Chyba při ukládání SMTP: %s', e)
         flash(f'Chyba při ukládání: {str(e)}', 'error')
     
     return redirect(url_for('settings.index'))

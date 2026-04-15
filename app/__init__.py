@@ -39,7 +39,8 @@ def create_app(config_class=Config):
                 static_url_path=static_url_path,
                 static_folder=static_folder)
     app.config.from_object(config_class)
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    if app.debug:
+        app.config['TEMPLATES_AUTO_RELOAD'] = True
     
     # Vypnout automatické přidávání lomítka
     app.url_map.strict_slashes = False
@@ -94,18 +95,22 @@ def create_app(config_class=Config):
             AuditLog.__bind_key__ = env
             Settings.__bind_key__ = env
         except Exception:
-            pass
+            app.logger.warning('Nepodařilo se nastavit __bind_key__ pro env=%s', env)
     
 
-    # Spustíme plánovač úloh (lazy import kvůli cyklickým závislostem)
+    # Nastavení pokročilého logování (musí být před schedulerem, aby se logy zachytily)
+    from app.logging_config import setup_ultimate_logging
+    setup_ultimate_logging(app)
+
+    # Registrace error handlerů
+    from app.errors import register_error_handlers
+    register_error_handlers(app)
+
+    # Spustíme plánovač úloh
     try:
         from app.tasks import init_scheduler
         init_scheduler(app)
     except Exception:
         app.logger.warning('Nepodařilo se inicializovat plánovač úloh')
-    
-    # Nastavení pokročilého logování
-    from app.logging_config import setup_ultimate_logging
-    setup_ultimate_logging(app)
-    
+
     return app

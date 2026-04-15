@@ -26,7 +26,7 @@ def seznam_serveru():
         
         return render_template('servery.html', servery=servery_data)
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání seznamu serverů: {str(e)}')
+        current_app.logger.error('Chyba při načítání seznamu serverů: %s', e)
         flash(f'Chyba při načítání seznamu serverů: {str(e)}', 'error')
         return redirect(url_for('main.index'))
 
@@ -49,7 +49,7 @@ def pridat_server():
             return redirect(url_for('servers.seznam_serveru'))
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f'Chyba při přidávání serveru: {str(e)}')
+            current_app.logger.error('Chyba při přidávání serveru: %s', e)
             flash(f'Chyba při přidávání serveru: {str(e)}', 'error')
             return redirect(url_for('servers.seznam_serveru'))
     
@@ -64,7 +64,7 @@ def detail_serveru(id):
                              server=server,
                              pocet_certifikatu=pocet_certifikatu)
     except Exception as e:
-        current_app.logger.error(f'Chyba při načítání detailu serveru: {str(e)}')
+        current_app.logger.error('Chyba při načítání detailu serveru: %s', e)
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/servery/upravit/<int:id>', methods=['GET', 'POST'])
@@ -89,7 +89,7 @@ def upravit_server(id):
             flash('Server byl úspěšně upraven', 'success')
             return redirect(url_for('servers.seznam_serveru'))
         except Exception as e:
-            current_app.logger.error(f'Chyba při úpravě serveru: {str(e)}')
+            current_app.logger.error('Chyba při úpravě serveru: %s', e)
             flash(f'Chyba při úpravě serveru: {str(e)}', 'error')
             return redirect(url_for('servers.seznam_serveru'))
     
@@ -112,7 +112,7 @@ def smazat_server(id):
         return redirect(url_for('servers.seznam_serveru'))
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f'Chyba při mazání serveru: {str(e)}')
+        current_app.logger.error('Chyba při mazání serveru: %s', e)
         flash(f'Chyba při mazání serveru: {str(e)}', 'error')
         return redirect(url_for('servers.seznam_serveru'))
 
