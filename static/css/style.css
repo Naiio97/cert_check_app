@@ -42,10 +42,22 @@
     --env-accent: #dc6b6b;
 }
 
-/* TEST environment — soft green */
-body.env-test {
+/* UAT environment — soft green */
+body.env-uat {
     --env-bg: linear-gradient(160deg, #edf7ef 0%, #e8f4f0 30%, #eaf0f8 60%, #eff7f0 100%);
     --env-accent: #3da35d;
+}
+
+/* SIT environment — soft yellow */
+body.env-sit {
+    --env-bg: linear-gradient(160deg, #fdfbec 0%, #f8f5e0 30%, #eaeff8 60%, #f8f5e0 100%);
+    --env-accent: #ca8a04;
+}
+
+/* PRELIVE environment — soft pink */
+body.env-prelive {
+    --env-bg: linear-gradient(160deg, #fdf0f5 0%, #f8e8f0 30%, #eaeff8 60%, #f8e8f0 100%);
+    --env-accent: #db2777;
 }
 
 /* ─── Reset ─── */
@@ -146,10 +158,22 @@ body::before {
     border: 1.5px solid rgba(220, 107, 107, 0.3);
 }
 
-.env-badge.env-test {
+.env-badge.env-uat {
     background: rgba(61, 163, 93, 0.12);
     color: #2d8049;
     border: 1.5px solid rgba(61, 163, 93, 0.3);
+}
+
+.env-badge.env-sit {
+    background: rgba(202, 138, 4, 0.12);
+    color: #a16207;
+    border: 1.5px solid rgba(202, 138, 4, 0.3);
+}
+
+.env-badge.env-prelive {
+    background: rgba(219, 39, 119, 0.12);
+    color: #be185d;
+    border: 1.5px solid rgba(219, 39, 119, 0.3);
 }
 
 /* ═══ NAVIGATION ═══ */
@@ -229,10 +253,22 @@ body::before {
     border: 1.5px solid rgba(220, 107, 107, 0.3);
 }
 
-.env-btn[data-env="test"].active {
+.env-btn[data-env="uat"].active {
     background: rgba(61, 163, 93, 0.15);
     color: #2d8049;
     border: 1.5px solid rgba(61, 163, 93, 0.3);
+}
+
+.env-btn[data-env="sit"].active {
+    background: rgba(202, 138, 4, 0.15);
+    color: #a16207;
+    border: 1.5px solid rgba(202, 138, 4, 0.3);
+}
+
+.env-btn[data-env="prelive"].active {
+    background: rgba(219, 39, 119, 0.15);
+    color: #be185d;
+    border: 1.5px solid rgba(219, 39, 119, 0.3);
 }
 
 .env-btn:hover:not(.active) {
