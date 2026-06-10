@@ -101,13 +101,15 @@
         <form method="POST" action="{{ url_for('settings.save_reports') }}">
             <div class="form-group">
                 <label>Prostředí</label>
-                {% for env in all_report_envs %}
-                <div class="checkbox-group">
-                    <input type="checkbox" id="report_env_{{ env }}" name="report_envs" value="{{ env }}"
-                        {% if env in report_envs %}checked{% endif %}>
-                    <label for="report_env_{{ env }}">{{ env|upper }}</label>
+                <div class="env-pills">
+                    {% for env in all_report_envs %}
+                    <label class="env-pill">
+                        <input type="checkbox" name="report_envs" value="{{ env }}"
+                            {% if env in report_envs %}checked{% endif %}>
+                        <span>{{ env|upper }}</span>
+                    </label>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
             <div style="display:flex; gap:16px">
                 <div class="form-group" style="flex:1">
