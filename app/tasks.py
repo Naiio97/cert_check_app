@@ -6,6 +6,7 @@ import os
 from sqlalchemy import text
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate, make_msgid
 import smtplib
 import ssl
 import calendar
@@ -22,7 +23,7 @@ def _engine(env: str):
 
 
 def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
-    """Odešle email. Konfigurace: DB Settings > .env Config."""
+    """Odešle email. Konfigurace: DB Settings > .env Config. Vrací True při úspěchu."""
     cfg = current_app.config
 
     # Načtení konfigurace (Priorita: DB > ENV)
@@ -57,7 +58,7 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
         recipients_raw = cfg.get("MAIL_RECIPIENTS")
         if not recipients_raw:
             current_app.logger.warning("MAIL_RECIPIENTS není nastaveno; e-mail neodeslán")
-            return
+            return False
         recipients = [r.strip() for r in recipients_raw.split(",") if r.strip()]
 
     if html_body:
@@ -73,6 +74,16 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
     msg["Subject"] = f"{subject_prefix} {subject}".strip()
     msg["From"] = f"{sender_name} <{sender_addr}>" if sender_name else sender_addr
     msg["To"] = ", ".join(recipients)
+    # Chybějící Date a Message-ID jsou silné spam/phishing signály (Exchange
+    # Online je vyhodnocuje v composite authentication) — smtplib je sám nedoplní.
+    msg["Date"] = formatdate(localtime=True)
+    sender_domain = sender_addr.split('@')[-1] if '@' in sender_addr else None
+    msg["Message-ID"] = make_msgid(domain=sender_domain)
+    msg["Reply-To"] = sender_addr
+    # Deklarace automaticky generované zprávy (RFC 3834) — filtry pak mail
+    # posuzují jako systémovou notifikaci, ne jako pokus o konverzaci.
+    msg["Auto-Submitted"] = "auto-generated"
+    msg["X-Auto-Response-Suppress"] = "All"
 
     try:
         context = ssl.create_default_context()
@@ -95,8 +106,10 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
                 current_app.logger.warning("SMTP partial failure: %s", result)
         
         current_app.logger.info("E-mail úspěšně odeslán: %s → %s (Server: %s:%d)", subject, recipients, server_host, server_port)
+        return True
     except Exception as e:
         current_app.logger.error("Chyba při odesílání e-mailu (%s:%d): %s", server_host, server_port, e)
+        return False
 
 
 
@@ -231,18 +244,29 @@ def send_monthly_certificate_report(env: str):
             stats=stats
         )
 
-        _send_email(f"[{env.upper()}] Měsíční report certifikátů", text_body, html_body)
-        current_app.logger.info(
-            "Report odeslán pro %s (vypršelé: %d, aktuální: %d, další: %d)", env, len(rows_expired), len(rows_cur), len(rows_next)
-        )
-        # Uložíme datum odeslání, aby startup check věděl, že report už byl dnes odeslán
-        Settings.set(f'monthly_report_last_sent_{env}', today.isoformat())
+        sent = _send_email(f"[{env.upper()}] Měsíční report certifikátů", text_body, html_body)
+        if sent:
+            current_app.logger.info(
+                "Report odeslán pro %s (vypršelé: %d, aktuální: %d, další: %d)", env, len(rows_expired), len(rows_cur), len(rows_next)
+            )
+            # Uložíme datum odeslání — catch-up po restartu pak ví, že tento měsíc už report odešel
+            Settings.set(f'monthly_report_last_sent_{env}', today.isoformat())
+        else:
+            current_app.logger.warning(
+                "Report pro %s se nepodařilo odeslat — zůstává neoznačen, catch-up ho po restartu zopakuje", env
+            )
 
     except Exception as e:
         current_app.logger.error("Chyba při generování měsíčního reportu (%s): %s", env, e)
 
 _app_ref = None
+_scheduler = None
 _scheduler_started = False
+
+ALL_REPORT_ENVS = ('live', 'uat', 'sit', 'prelive')
+DEFAULT_REPORT_ENVS = ','.join(ALL_REPORT_ENVS)
+# Více prostředí se odesílá s tímto rozestupem, aby nepřišly všechny maily naráz
+REPORT_STAGGER_MINUTES = 5
 
 
 def _run_daily(env: str):
@@ -262,9 +286,132 @@ def _run_monthly(env: str):
         send_monthly_certificate_report(env)
 
 
+def get_report_config(app):
+    """Konfigurace měsíčních reportů. Priorita: DB Settings > .env > default.
+
+    Vrací (envs, day, hour, minute). Vyžaduje application context.
+    """
+    def _setting(key, fallback):
+        try:
+            val = Settings.get(key)
+        except Exception:
+            val = None
+        return val if val not in (None, '') else fallback
+
+    raw_envs = _setting(
+        'report_envs',
+        app.config.get('REPORT_ENVS') or os.environ.get('REPORT_ENVS') or DEFAULT_REPORT_ENVS,
+    )
+    parsed = [e.strip().lower() for e in str(raw_envs).split(',') if e.strip()]
+    # map aliases a odfiltruj neznámé hodnoty, zachovej pořadí a unikátnost
+    _alias = {'uat': 'uat', 'test': 'uat', 'live': 'live', 'prod': 'live', 'production': 'live', 'sit': 'sit', 'prelive': 'prelive'}
+    envs = []
+    for e in parsed:
+        m = _alias.get(e)
+        if m and m not in envs:
+            envs.append(m)
+    if not envs:
+        envs = ['live']
+
+    def _int_setting(key, env_key, default, lo, hi):
+        try:
+            val = int(_setting(key, os.environ.get(env_key, default)))
+        except (TypeError, ValueError):
+            val = int(default)
+        return max(lo, min(hi, val))
+
+    # Den omezen na 1–28, aby plán platil i pro únor
+    day = _int_setting('report_day', 'REPORT_DAY', '1', 1, 28)
+    hour = _int_setting('report_hour', 'REPORT_HOUR', '9', 0, 23)
+    minute = _int_setting('report_minute', 'REPORT_MINUTE', '0', 0, 59)
+    return envs, day, hour, minute
+
+
+def _stagger(hour: int, minute: int, idx: int):
+    total = minute + idx * REPORT_STAGGER_MINUTES
+    return (hour + total // 60) % 24, total % 60
+
+
+def schedule_report_jobs(app, scheduler):
+    """(Pře)naplánuje cron joby měsíčních reportů podle aktuální konfigurace."""
+    with app.app_context():
+        envs, day, hour, minute = get_report_config(app)
+
+    for job in scheduler.get_jobs():
+        if job.id.startswith('monthly_report_'):
+            job.remove()
+
+    for idx, env in enumerate(envs):
+        adj_hour, adj_minute = _stagger(hour, minute, idx)
+        scheduler.add_job(
+            _run_monthly,
+            'cron',
+            id=f'monthly_report_{env}',
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=6 * 3600,
+            day=day,
+            hour=adj_hour,
+            minute=adj_minute,
+            args=[env],
+        )
+
+    when_str = ', '.join(
+        f"{env}:{day}. v {_stagger(hour, minute, idx)[0]:02d}:{_stagger(hour, minute, idx)[1]:02d}"
+        for idx, env in enumerate(envs)
+    )
+    app.logger.info("Měsíční reporty naplánovány (%s)", when_str)
+    return envs, day, hour, minute
+
+
+def reschedule_reports(app):
+    """Aplikuje změnu nastavení reportů bez restartu (volá settings UI)."""
+    if _scheduler is None:
+        return None
+    return schedule_report_jobs(app, _scheduler)
+
+
+def _catch_up_missed_reports(app, scheduler, envs, day, hour, minute):
+    """Dodatečné odeslání reportů zmeškaných kvůli výpadku (typicky patching).
+
+    Pokud už v tomto měsíci minul plánovaný termín a report pro dané prostředí
+    v tomto měsíci neodešel, odešle se dodatečně. Funguje kterýkoli den
+    v měsíci (ne jen v den reportu) a nikdy neposílá před plánovaným časem —
+    restart ve 3:00 v den reportu tedy report předčasně nespustí.
+    """
+    now = datetime.now()
+    scheduled = now.replace(day=day, hour=hour, minute=minute, second=0, microsecond=0)
+    if now < scheduled:
+        return
+
+    month_key = now.strftime('%Y-%m')
+    with app.app_context():
+        for idx, env in enumerate(envs):
+            try:
+                last_sent = Settings.get(f'monthly_report_last_sent_{env}')
+            except Exception:
+                last_sent = None
+            if last_sent and str(last_sent)[:7] == month_key:
+                continue
+            delay_min = idx * REPORT_STAGGER_MINUTES
+            app.logger.info(
+                'Catch-up: report pro %s za %s nebyl odeslán (naposledy: %s) — odešlu za %d min',
+                env, month_key, last_sent or 'nikdy', delay_min
+            )
+            scheduler.add_job(
+                _run_monthly,
+                'date',
+                run_date=now + timedelta(minutes=delay_min),
+                id=f'monthly_catchup_{env}',
+                replace_existing=True,
+                args=[env],
+            )
+
+
 def init_scheduler(app):
     """Inicializace plánovače úloh (idempotentní, bez duplicit)."""
-    global _app_ref, _scheduler_started
+    global _app_ref, _scheduler, _scheduler_started
     # Zabráníme spuštění v rodičovském procesu debug reloaderu
     if getattr(app, 'debug', False) and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         app.logger.info('Scheduler: přeskočeno v parent procesu (debug reloader)')
@@ -275,67 +422,11 @@ def init_scheduler(app):
     _app_ref = app
 
     scheduler = BackgroundScheduler(daemon=True)
+    _scheduler = scheduler
 
-    # Z jakých prostředí posílat reporty: REPORT_ENVS="live" (default) nebo např. "test" či "live,test"
-    raw_envs = (app.config.get('REPORT_ENVS') or os.environ.get('REPORT_ENVS') or 'live,test')
-    envs = [e.strip().lower() for e in raw_envs.split(',') if e.strip()]
-    # map aliases a odfiltruj neznámé hodnoty, zachovej pořadí a unikátnost
-    _alias = {'uat': 'uat', 'test': 'uat', 'live': 'live', 'prod': 'live', 'production': 'live', 'sit': 'sit', 'prelive': 'prelive'}
-    mapped = [_alias.get(e) for e in envs]
-    envs = []
-    for m in mapped:
-        if m and m not in envs:
-            envs.append(m)
-    # Časy pro měsíční report (lze přepsat env proměnnami)
-    month_day = int(os.environ.get('REPORT_DAY', '1'))
-    month_hour = int(os.environ.get('REPORT_HOUR', '9'))
-    month_minute = int(os.environ.get('REPORT_MINUTE', '0'))
-
-    for idx, env in enumerate(envs):
-        job_id = f'monthly_report_{env}'
-        # Pokud je více prostředí, pošleme každé s posunem +5 min, aby nepřišly 2 e-maily současně
-        adj_minute_total = month_minute + idx * 5
-        adj_hour = (month_hour + (adj_minute_total // 60)) % 24
-        adj_minute = adj_minute_total % 60
-        scheduler.add_job(
-            _run_monthly,
-            'cron',
-            id=job_id,
-            replace_existing=True,
-            coalesce=True,
-            max_instances=1,
-            misfire_grace_time=3600,
-            day=month_day,
-            hour=adj_hour,
-            minute=adj_minute,
-            args=[env],
-        )
-
+    envs, day, hour, minute = schedule_report_jobs(app, scheduler)
     scheduler.start()
-    when_str = ', '.join([
-        f"{env}:{month_day}.{((month_hour + ((month_minute + idx*5)//60))%24):02d}:{((month_minute + idx*5)%60):02d}"
-        for idx, env in enumerate(envs)
-    ])
-    app.logger.info("Plánovač úloh inicializován (envs=%s | %s)", ','.join(envs), when_str)
 
-    # Startup check: pokud dnes je den reportu a report ještě nebyl odeslán, spustíme ihned.
-    # Řeší případ kdy aplikace spadla/restartovala po plánovaném čase (APScheduler by jinak
-    # čekal až na příští měsíc).
-    today = date.today()
-    if today.day == month_day:
-        with app.app_context():
-            for env in envs:
-                last_sent = Settings.get(f'monthly_report_last_sent_{env}')
-                if last_sent != today.isoformat():
-                    app.logger.info(
-                        'Startup check: report pro %s dnes nebyl odeslán (naposledy: %s) – spouštím ihned',
-                        env, last_sent or 'nikdy'
-                    )
-                    scheduler.add_job(
-                        _run_monthly,
-                        id=f'monthly_startup_{env}',
-                        replace_existing=True,
-                        args=[env],
-                    )
+    _catch_up_missed_reports(app, scheduler, envs, day, hour, minute)
 
     return scheduler

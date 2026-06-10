@@ -45,7 +45,7 @@ def build_rows_html(rows: list, today: date, critical_days: int = 30) -> str:
         if left <= 0:
             row_bg = '#fef2f2'
             left_color = '#dc2626'
-            left_label = f'<strong style="color:{left_color}">{left}</strong> ⚠️'
+            left_label = f'<strong style="color:{left_color}">{left}</strong>'
         elif critical:
             row_bg = '#fff7ed'
             left_color = '#ea580c'

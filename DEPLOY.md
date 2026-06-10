@@ -227,6 +227,35 @@ Aby aplikace běžela na pozadí i po restartu serveru, použij **NSSM**.
 > Windows Service (`evidence_cert` přes NSSM) řídí samotný Python/Waitress proces.
 > Obě věci musí běžet zároveň.
 
+### 5.5 Logy služby (stdout/stderr) — rotace a úklid
+
+Aplikační log (`logs\app.log`) rotuje a komprimuje aplikace sama. Stdout/stderr
+procesu přesměrovává NSSM — nastav rotaci, ať soubory nerostou donekonečna:
+
+```bat
+nssm set evidence_cert AppStdout C:\inetpub\certifikaty\logs\service.out.log
+nssm set evidence_cert AppStderr C:\inetpub\certifikaty\logs\service.err.log
+
+REM Rotace: za běhu, 1× denně nebo po 10 MB (co nastane dřív)
+nssm set evidence_cert AppRotateFiles 1
+nssm set evidence_cert AppRotateOnline 1
+nssm set evidence_cert AppRotateSeconds 86400
+nssm set evidence_cert AppRotateBytes 10485760
+
+nssm restart evidence_cert
+```
+
+Časové značky do těchto souborů doplňuje aplikace sama (každý řádek má prefix
+`[YYYY-MM-DD HH:MM:SS]`), NSSM nic přidávat neumí.
+
+NSSM staré rotované soubory nemaže. Úklid souborů starších 30 dní zajistí
+naplánovaná úloha (spusť jednou jako Administrator):
+
+```bat
+schtasks /create /tn "Certifikaty_LogCleanup" /sc daily /st 03:00 /ru SYSTEM ^
+  /tr "forfiles /p C:\inetpub\certifikaty\logs /m service*.log /d -30 /c \"cmd /c del @path\""
+```
+
 ---
 
 ## 6. Konfigurace aplikace (.env)
@@ -255,13 +284,20 @@ MAIL_RECIPIENTS=admin@firma.cz,security@firma.cz
 
 # ── Prostředí zahrnutá do měsíčního reportu ──────────────────────────────────
 # Možné hodnoty: live, uat, sit, prelive  (odděleno čárkou, bez mezer)
-REPORT_ENVS=live
+REPORT_ENVS=live,uat,sit,prelive
 
 # ── Plán měsíčního reportu ────────────────────────────────────────────────────
-REPORT_DAY=1      # den v měsíci (1 = první den)
+REPORT_DAY=1      # den v měsíci (1-28)
 REPORT_HOUR=9     # hodina (0-23)
 REPORT_MINUTE=0   # minuta (0-59)
 ```
+
+> **Poznámka k reportům:** Hodnoty v `.env` jsou jen výchozí. Plán reportů se
+> primárně nastavuje přímo v aplikaci (**Nastavení → Měsíční reporty**) a uloží
+> se do databáze — hodnoty z DB mají přednost a změna se aplikuje bez restartu.
+> Každé další prostředí se odesílá s odstupem 5 minut. Pokud byla aplikace
+> v plánovaném čase mimo provoz (typicky měsíční patching), report se odešle
+> dodatečně automaticky po startu služby — nikdy ale ne před plánovaným časem.
 
 **Vygenerování SECRET_KEY:**
 
@@ -493,7 +529,39 @@ netstat -ano | findstr :8080
 
 ### Logy aplikace
 
-Aplikační logy: `logs\app.log` (automatická rotace, archivace jako `logs\app.log.YYYY-MM-DD.zip`)
+- Aplikační log: `logs\app.log` (rotace o půlnoci, archivace jako `logs\app.log.YYYY-MM-DD.zip`, drží se 90 dní)
+- Logy služby: `logs\service.out.log` a `logs\service.err.log` (rotuje NSSM, viz sekce 5.5)
+
+### Aplikační log se přestal zapisovat
+
+Nejčastější příčina: půlnoční rotaci zablokoval jiný proces, který držel
+`app.log` otevřený — typicky **druhá ručně spuštěná instance aplikace**
+(`python app.py` vedle běžící služby) nebo log otevřený v programu, který
+soubor zamyká. Aplikace to nyní přežije (zaloguje selhání rotace do
+`service.err.log` a pokračuje v zápisu), přesto platí:
+
+- Nikdy nespouštěj druhou instanci aplikace nad stejnou složkou, dokud běží služba.
+- Log prohlížej kopií nebo nástrojem, který soubor nezamyká (`type`, VS Code, `Get-Content -Tail`).
+- Diagnóza: hledej `Rotace logu selhala` v `logs\service.err.log`.
+
+### E-mail s reportem skončil v karanténě (phishing)
+
+Hlavičky zprávy aplikace doplňuje správně (`Date`, `Message-ID`,
+`Auto-Submitted`). Pokud Exchange/Defender přesto hlásí *„Phishing zjištěný
+s vysokou pravděpodobností"*, je příčinou téměř vždy **selhání ověření
+odesílatele (SPF/DKIM/DMARC)** — aplikační server posílá mail s adresou firemní
+domény (`MAIL_SENDER_ADDRESS`), ale není uveden jako povolený odesílatel této
+domény. To z pohledu filtru vypadá jako spoofing. Řešení domluv s správci pošty:
+
+1. **SPF:** přidat IP aplikačního serveru (nebo interní relay) do SPF záznamu
+   domény odesílatele, případně posílat přes relay, který už v SPF je.
+2. **Exchange Online:** přidat výjimku — Tenant Allow List / mail flow rule
+   pro adresu odesílatele + IP serveru (interní notifikační systém).
+3. Ověřit, že `MAIL_SENDER_ADDRESS` je doména, za kterou smí SMTP server
+   (`MAIL_SERVER`) odesílat — ne smyšlená adresa typu `noreply@example.com`.
+
+Konkrétní důvod zamítnutí je vidět v karanténě v hlavičce zprávy
+(`Authentication-Results: spf=fail / dmarc=fail` apod.).
 
 ### Stav databází — přehled souborů
 
@@ -511,4 +579,4 @@ certifikaty_prelive.db
 
 ---
 
-*Dokument aktualizován: 2026-04-15*
+*Dokument aktualizován: 2026-06-10*

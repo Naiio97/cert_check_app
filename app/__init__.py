@@ -1,7 +1,6 @@
 from flask import Flask, g, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
-from logging.handlers import RotatingFileHandler
 import logging
 import os
 from datetime import datetime

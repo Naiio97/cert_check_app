@@ -56,6 +56,6 @@ echo Obsah: app\, static\, dependencies\, *.py, *.txt, deploy.bat, update.bat
 echo Vynechano: instance\ (databaze), logs\, uploads\, .env
 echo.
 echo Na serveru:
-echo   update.bat CertifikatyPool %ZIPNAME% evidence_cert
+echo   update.bat evidence_cert %ZIPNAME%
 echo.
 pause

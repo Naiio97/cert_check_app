@@ -89,6 +89,47 @@
         </form>
     </div>
 
+    <!-- Měsíční reporty -->
+    <div class="settings-card">
+        <h3><i class="fas fa-calendar-alt"></i> Měsíční reporty</h3>
+        <p class="settings-desc">
+            Automatický e-mailový report končících certifikátů. Každé další zaškrtnuté prostředí
+            se odesílá s odstupem {{ report_stagger }} minut, aby maily nepřišly naráz.
+            Pokud byla aplikace v plánovaném čase mimo provoz (např. patching), report se odešle
+            dodatečně po startu.
+        </p>
+        <form method="POST" action="{{ url_for('settings.save_reports') }}">
+            <div class="form-group">
+                <label>Prostředí</label>
+                {% for env in all_report_envs %}
+                <div class="checkbox-group">
+                    <input type="checkbox" id="report_env_{{ env }}" name="report_envs" value="{{ env }}"
+                        {% if env in report_envs %}checked{% endif %}>
+                    <label for="report_env_{{ env }}">{{ env|upper }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="display:flex; gap:16px">
+                <div class="form-group" style="flex:1">
+                    <label for="report_day">Den v měsíci</label>
+                    <input type="number" id="report_day" name="report_day" value="{{ report_day }}" min="1" max="28">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label for="report_hour">Hodina</label>
+                    <input type="number" id="report_hour" name="report_hour" value="{{ report_hour }}" min="0" max="23">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label for="report_minute">Minuta</label>
+                    <input type="number" id="report_minute" name="report_minute" value="{{ report_minute }}" min="0" max="59">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button primary">
+                    <i class="fas fa-save"></i> Uložit plán reportů
+                </button>
+            </div>
+        </form>
+    </div>
 
 </div>
 

@@ -19,14 +19,12 @@ def index():
     except Exception:
         current_app.logger.warning('Nepodařilo se načíst nastavení z DB')
 
-    report_day = os.environ.get('REPORT_DAY', '1')
-    report_hour = os.environ.get('REPORT_HOUR', '9')
-    report_minute = int(os.environ.get('REPORT_MINUTE', '0'))
-    
-    raw_envs = (current_app.config.get('REPORT_ENVS') or os.environ.get('REPORT_ENVS') or 'live,test')
-    report_envs = [e.strip().lower() for e in raw_envs.split(',') if e.strip()]
+    from app.tasks import get_report_config, ALL_REPORT_ENVS, REPORT_STAGGER_MINUTES
+    report_envs, report_day, report_hour, report_minute = get_report_config(current_app)
 
     return render_template('settings.html',
+                         all_report_envs=ALL_REPORT_ENVS,
+                         report_stagger=REPORT_STAGGER_MINUTES,
                          settings=settings_dict,
                          config=current_app.config,
                          report_day=report_day,
@@ -56,6 +54,39 @@ def save():
         flash('Neplatné hodnoty', 'error')
     except Exception as e:
         current_app.logger.error('Chyba při ukládání nastavení: %s', e)
+        flash(f'Chyba: {str(e)}', 'error')
+
+    return redirect(url_for('settings.index'))
+
+
+@bp.route('/nastaveni/save-reports', methods=['POST'])
+def save_reports():
+    from app.tasks import reschedule_reports, ALL_REPORT_ENVS
+    try:
+        selected = request.form.getlist('report_envs')
+        envs = [e for e in ALL_REPORT_ENVS if e in selected]
+        if not envs:
+            flash('Vyberte alespoň jedno prostředí', 'error')
+            return redirect(url_for('settings.index'))
+
+        day = max(1, min(28, int(request.form.get('report_day', '1'))))
+        hour = max(0, min(23, int(request.form.get('report_hour', '9'))))
+        minute = max(0, min(59, int(request.form.get('report_minute', '0'))))
+
+        Settings.set('report_envs', ','.join(envs))
+        Settings.set('report_day', str(day))
+        Settings.set('report_hour', str(hour))
+        Settings.set('report_minute', str(minute))
+
+        result = reschedule_reports(current_app._get_current_object())
+        if result:
+            flash('Plán reportů uložen a aplikován (bez nutnosti restartu).', 'success')
+        else:
+            flash('Plán reportů uložen — projeví se po restartu aplikace.', 'success')
+    except ValueError:
+        flash('Neplatné hodnoty', 'error')
+    except Exception as e:
+        current_app.logger.error('Chyba při ukládání plánu reportů: %s', e)
         flash(f'Chyba: {str(e)}', 'error')
 
     return redirect(url_for('settings.index'))
