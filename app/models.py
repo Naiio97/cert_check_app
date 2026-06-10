@@ -81,6 +81,9 @@ class AuditLog(db.Model):
 
 class Settings(db.Model):
     __bind_key__ = 'live'
+    # Konfigurace je společná pro všechna prostředí — RoutingSession ji vždy
+    # směruje do live DB, i když má uživatel v UI přepnuté jiné prostředí.
+    __global_table__ = True
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.String(500), nullable=False)

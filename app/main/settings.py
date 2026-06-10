@@ -77,6 +77,9 @@ def save_reports():
         Settings.set('report_day', str(day))
         Settings.set('report_hour', str(hour))
         Settings.set('report_minute', str(minute))
+        current_app.logger.info(
+            'Plán reportů uložen: envs=%s, den=%d, čas=%02d:%02d', ','.join(envs), day, hour, minute
+        )
 
         result = reschedule_reports(current_app._get_current_object())
         if result:

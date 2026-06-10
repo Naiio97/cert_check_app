@@ -11,6 +11,12 @@ from flask_sqlalchemy.session import Session as _FsaSession
 class RoutingSession(_FsaSession):
     """Směruje ORM operace na bind podle cookie env (live/test)."""
     def get_bind(self, mapper=None, clause=None, bind=None, **kwargs):
+        # Globální tabulky (Settings) jdou vždy do live DB bez ohledu na cookie —
+        # scheduler a joby čtou mimo request context, takže by konfiguraci
+        # uloženou v jiném prostředí nikdy neviděly.
+        cls = getattr(mapper, 'class_', None) if mapper is not None else None
+        if cls is not None and getattr(cls, '__global_table__', False):
+            return db.get_engine(current_app, bind='live')
         env = getattr(g, 'db_bind', None)
         if env in ('live', 'uat', 'sit', 'prelive'):
             return db.get_engine(current_app, bind=env)
