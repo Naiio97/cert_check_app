@@ -30,3 +30,14 @@ Thumbs.db
 
 # Exports
 static/*.xlsx
+
+# Dalsi virtualni prostredi
+venv-*/
+
+# Build artefakty z package.bat
+*.zip
+VERSION.txt
+dependencies/
+
+# Lokalni nastaveni Claude Code
+.claude/
