@@ -6,9 +6,13 @@
 <div class="page-header">
     <div>
         <h1>Nastavení</h1>
-        <p class="page-subtitle">Prahy upozornění, odesílání e-mailů, pravidelné reporty a uživatelé</p>
+        <p class="page-subtitle">Uživatelé a role, prahy upozornění, odesílání e-mailů a pravidelné reporty</p>
     </div>
 </div>
+
+{% if can('admin') %}
+{% include '_users_section.html' %}
+{% endif %}
 
 <!-- Prahy notifikací -->
 <section class="settings-section">
@@ -128,7 +132,4 @@
     </form>
 </section>
 
-{% if can('admin') %}
-{% include '_users_section.html' %}
-{% endif %}
 {% endblock %}
