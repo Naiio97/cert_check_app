@@ -25,6 +25,18 @@ def cz_month_name(dt: date) -> str:
     except Exception:
         return str(dt.month)
 
+# Barvy hlaviček e-mailů podle prostředí — sladěno s barvami v UI (env-badge / env-btn v style.css)
+ENV_TITLE_COLORS = {
+    'LIVE': '#dc2626',
+    'UAT': '#16a34a',
+    'SIT': '#ca8a04',
+    'PRELIVE': '#db2777',
+}
+
+def get_env_title_color(env: str) -> str:
+    return ENV_TITLE_COLORS.get(str(env).upper(), '#111')
+
+
 def build_rows_html(rows: list, today: date, critical_days: int = 30) -> str:
     # jednoduché inline CSS pro kompatibilitu v e-mailových klientech
     table_head = (

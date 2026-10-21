@@ -12,7 +12,7 @@ import ssl
 import calendar
 
 from app.models import Settings, Certifikat
-from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html
+from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html, get_env_title_color
 
 def _engine(env: str):
     # Flask-SQLAlchemy 3.2+: používejte db.engines[bind]
@@ -139,7 +139,7 @@ def send_daily_certificate_alert(env: str):
         table_html = build_rows_html(rows, today, critical_days)
         stats = {'critical': len(critical), 'warning': len(warning), 'total': len(rows)}
         env_upper = env.upper()
-        title_color = '#dc2626' if env_upper == 'LIVE' else '#16a34a'
+        title_color = get_env_title_color(env_upper)
         html = wrap_email_html(
             title=f"[{env_upper}] Končící certifikáty do {warning_days} dnů",
             sections=[(f"Certifikáty ({len(rows)})", table_html)],
@@ -233,7 +233,7 @@ def send_monthly_certificate_report(env: str):
         sections.append((cz_month_name(date(next_year, next_month, 1)), next_table))
         
         env_upper = env.upper()
-        title_color = '#dc2626' if env_upper == 'LIVE' else '#16a34a'
+        title_color = get_env_title_color(env_upper)
         total = len(rows_expired) + len(rows_cur) + len(rows_next)
         stats = {'critical': len(rows_expired), 'warning': len(rows_cur), 'total': total}
         

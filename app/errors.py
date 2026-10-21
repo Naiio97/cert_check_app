@@ -4,7 +4,9 @@ from app import db
 def register_error_handlers(app):
     @app.errorhandler(404)
     def not_found_error(error):
-        app.logger.error('Stránka nenalezena: %s', request.url)
+        # WARNING, ne ERROR — 404 generují hlavně scannery a překlepy v URL,
+        # ERROR level má zůstat volný pro skutečné chyby aplikace.
+        app.logger.warning('Stránka nenalezena: %s', request.url)
         return render_template('404.html'), 404
 
     @app.errorhandler(500)
@@ -15,5 +17,5 @@ def register_error_handlers(app):
 
     @app.errorhandler(413)
     def too_large(error):
-        app.logger.error('Nahrávaný soubor je příliš velký')
+        app.logger.warning('Nahrávaný soubor je příliš velký')
         return 'Soubor je příliš velký', 413 

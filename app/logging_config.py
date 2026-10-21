@@ -10,6 +10,11 @@ from logging.handlers import TimedRotatingFileHandler
 from flask import request, has_request_context
 
 
+# Werkzeug (a další knihovny) obarvují zprávy ANSI kódy, jakmile je na Windows
+# importovatelná colorama — bez ohledu na to, že výstup jde do souboru.
+_ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+
 class RequestFormatter(logging.Formatter):
     def format(self, record):
         if has_request_context():
@@ -17,10 +22,12 @@ class RequestFormatter(logging.Formatter):
             record.remote_addr = request.remote_addr
             record.method = request.method
         else:
-            record.url = None
-            record.remote_addr = None
-            record.method = None
-        return super().format(record)
+            # Záznamy mimo request context (werkzeug, scheduler) — pomlčka
+            # místo "None", aby se v logu dalo vizuálně filtrovat.
+            record.url = '-'
+            record.remote_addr = '-'
+            record.method = '-'
+        return _ANSI_RE.sub('', super().format(record))
 
 
 class TimestampedStream:

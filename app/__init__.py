@@ -110,6 +110,8 @@ def create_app(config_class=Config):
         from app.tasks import init_scheduler
         init_scheduler(app)
     except Exception:
-        app.logger.warning('Nepodařilo se inicializovat plánovač úloh')
+        # exc_info nutné — bez tracebacku nejde poznat, PROČ scheduler
+        # nenastartoval (a reporty pak tiše nechodí)
+        app.logger.error('Nepodařilo se inicializovat plánovač úloh', exc_info=True)
 
     return app
