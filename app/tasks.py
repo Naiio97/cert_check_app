@@ -4,6 +4,7 @@ from app import db
 from datetime import datetime, date, timedelta
 import os
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
@@ -251,13 +252,16 @@ def send_monthly_certificate_report(env: str):
             )
             # Uložíme datum odeslání — catch-up po restartu pak ví, že tento měsíc už report odešel
             Settings.set(f'monthly_report_last_sent_{env}', today.isoformat())
+            return True
         else:
             current_app.logger.warning(
                 "Report pro %s se nepodařilo odeslat — zůstává neoznačen, catch-up ho po restartu zopakuje", env
             )
+            return False
 
     except Exception as e:
         current_app.logger.error("Chyba při generování měsíčního reportu (%s): %s", env, e)
+        return False
 
 _app_ref = None
 _scheduler = None
@@ -277,13 +281,62 @@ def _run_daily(env: str):
         send_daily_certificate_alert(env)
 
 
+# Naplánovaný report si před odesláním "zamkne" prostředí v DB. Pokud by scheduler
+# přesto běžel ve více procesech (reloader, dvě instance služby), druhý proces
+# zámek nezíská a report se neodešle podruhé. Okno stačí na rozptyl startů
+# jobů, zároveň po selhání odeslání zámek uvolníme, aby catch-up mohl zopakovat.
+REPORT_CLAIM_WINDOW = timedelta(minutes=15)
+
+
+def _claim_scheduled_report(env: str) -> bool:
+    """Atomicky získá právo odeslat naplánovaný report. Vrací False, pokud ho má jiný proces."""
+    key = f'monthly_report_claim_{env}'
+    now = datetime.now()
+    cutoff = (now - REPORT_CLAIM_WINDOW).isoformat()
+    try:
+        # UPDATE ... WHERE value < cutoff je atomický; uspěje jen jednomu procesu
+        updated = Settings.query.filter(Settings.key == key, Settings.value < cutoff).update(
+            {Settings.value: now.isoformat()}, synchronize_session=False
+        )
+        db.session.commit()
+        if updated:
+            return True
+        if Settings.query.filter_by(key=key).first() is not None:
+            return False
+        db.session.add(Settings(key=key, value=now.isoformat()))
+        db.session.commit()
+        return True
+    except IntegrityError:
+        # souběžný INSERT ze druhého procesu (unique key) – ten zámek získal
+        db.session.rollback()
+        return False
+    except Exception:
+        db.session.rollback()
+        current_app.logger.error("Zámek reportu pro %s selhal – odesílám bez něj", env, exc_info=True)
+        return True
+
+
+def _release_scheduled_report(env: str):
+    try:
+        Settings.set(f'monthly_report_claim_{env}', '')
+    except Exception:
+        db.session.rollback()
+        current_app.logger.warning("Uvolnění zámku reportu pro %s selhalo", env, exc_info=True)
+
+
 def _run_monthly(env: str):
-    """Wrapper pro job: zajistí application context."""
+    """Wrapper pro job: zajistí application context a zabrání dvojímu odeslání."""
     if _app_ref is None:
         raise RuntimeError('Aplikace není inicializovaná (_app_ref is None)')
     with _app_ref.app_context():
-        current_app.logger.info("Spouštím měsíční report pro env=%s", env)
-        send_monthly_certificate_report(env)
+        if not _claim_scheduled_report(env):
+            current_app.logger.warning(
+                "Měsíční report pro env=%s už odesílá jiný proces/job – přeskakuji (pid=%d)", env, os.getpid()
+            )
+            return
+        current_app.logger.info("Spouštím měsíční report pro env=%s (pid=%d)", env, os.getpid())
+        if not send_monthly_certificate_report(env):
+            _release_scheduled_report(env)
 
 
 def get_report_config(app):
@@ -409,11 +462,22 @@ def _catch_up_missed_reports(app, scheduler, envs, day, hour, minute):
             )
 
 
+def _is_reloader_parent(app) -> bool:
+    """True v rodičovském procesu debug reloaderu (ten žádný scheduler nepotřebuje).
+
+    app.debug v create_app() nestačí – app.run(debug=True) ho nastaví až později –
+    proto se kontroluje i FLASK_DEBUG z prostředí.
+    """
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        return False
+    flag = os.environ.get('FLASK_DEBUG', '').strip().lower()
+    return bool(getattr(app, 'debug', False)) or flag in ('1', 'true', 'yes', 'on')
+
+
 def init_scheduler(app):
     """Inicializace plánovače úloh (idempotentní, bez duplicit)."""
     global _app_ref, _scheduler, _scheduler_started
-    # Zabráníme spuštění v rodičovském procesu debug reloaderu
-    if getattr(app, 'debug', False) and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    if _is_reloader_parent(app):
         app.logger.info('Scheduler: přeskočeno v parent procesu (debug reloader)')
         return None
     if _scheduler_started:
