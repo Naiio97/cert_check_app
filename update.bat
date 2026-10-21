@@ -91,11 +91,12 @@ if errorlevel 1 (
 )
 
 echo [5/6] Nastavuji sluzbu na waitress ...
+REM AppDirectory bez koncoveho zpetneho lomitka (jinak by escapovalo uvozovku)
 REM Sluzba drive poustela "python app.py" (werkzeug dev server) - waitress je
 REM produkcni server: bez debuggeru, jeden proces, funkcni rotace logu.
 nssm set "%NSSM_SERVICE%" Application "%APP_DIR%venv\Scripts\python.exe"
 nssm set "%NSSM_SERVICE%" AppParameters "-m waitress --host=0.0.0.0 --port=8080 wsgi:app"
-nssm set "%NSSM_SERVICE%" AppDirectory "%APP_DIR%"
+nssm set "%NSSM_SERVICE%" AppDirectory "%APP_DIR:~0,-1%"
 if errorlevel 1 (
     echo [VAROVANI] Prenastaveni sluzby selhalo - pojede se stavajici konfiguraci.
 ) else (

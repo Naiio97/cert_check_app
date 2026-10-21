@@ -78,7 +78,7 @@ echo  4. Nastav NSSM sluzbu (viz DEPLOY.md sekce 5.4):
 echo        nssm install CertifikatyApp
 echo        nssm set CertifikatyApp Application "%APP_DIR%venv\Scripts\python.exe"
 echo        nssm set CertifikatyApp AppParameters "-m waitress --host=0.0.0.0 --port=8080 wsgi:app"
-echo        nssm set CertifikatyApp AppDirectory "%APP_DIR%"
+echo        nssm set CertifikatyApp AppDirectory "%APP_DIR:~0,-1%"
 echo        nssm start CertifikatyApp
 echo.
 pause
