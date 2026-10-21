@@ -775,3 +775,16 @@ input[type="checkbox"]#selectAll {
     .stat:nth-child(2) { border-right: none; }
     .stat:nth-child(-n+2) { border-bottom: 1px solid var(--border-soft); }
 }
+
+/* ─── Opravy přebitých starých pravidel ─── */
+.search-bar { margin: 0; }
+.card-header { border-bottom: none; font-weight: inherit; }
+.card-header-split { border-bottom: 1px solid var(--border-soft); }
+
+/* ─── Historie změn ─── */
+.pill-ok .dot { background: #16A34A; }
+.history-table td { height: 52px; }
+.history-table .col-time { width: 160px; white-space: nowrap; color: var(--muted); }
+.history-table .col-action { width: 130px; }
+.history-table .col-server { width: 150px; }
+td.col-server-plain { font-size: 13px; }

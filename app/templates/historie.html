@@ -3,71 +3,77 @@
 {% block title %}Historie změn{% endblock %}
 
 {% block content %}
-<div class="content-header">
-    <h1><i class="fas fa-history"></i> Historie změn</h1>
+<div class="page-header">
+    <div>
+        <h1>Historie změn</h1>
+        <p class="page-subtitle">Přehled přidaných a smazaných certifikátů</p>
+    </div>
 </div>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>Čas</th>
-                <th>Akce</th>
-                <th>Certifikát</th>
-                <th>Server</th>
-                <th>Detail</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.cas.strftime('%d.%m.%Y %H:%M') }}</td>
-                <td>
-                    {% if log.akce == 'pridano' %}
-                    <span class="badge badge-success"><i class="fas fa-plus"></i> Přidáno</span>
-                    {% elif log.akce == 'upraveno' %}
-                    <span class="badge badge-info"><i class="fas fa-edit"></i> Upraveno</span>
-                    {% elif log.akce == 'smazano' %}
-                    <span class="badge badge-danger"><i class="fas fa-trash"></i> Smazáno</span>
-                    {% else %}
-                    <span class="badge">{{ log.akce }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ log.certifikat_nazev or '–' }}</td>
-                <td>{{ log.server or '–' }}</td>
-                <td class="detail-cell">{{ log.detail or '–' }}</td>
-            </tr>
-            {% endfor %}
-            {% if not logs %}
-            <tr>
-                <td colspan="5" style="text-align:center; padding:24px; color:var(--text-secondary)">Žádné záznamy</td>
-            </tr>
+<div class="table-card">
+    <div class="table-container">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th class="col-time">Čas</th>
+                    <th class="col-action">Akce</th>
+                    <th>Certifikát</th>
+                    <th class="col-server">Server</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="col-time">{{ log.cas.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td class="col-action">
+                        {% if log.akce == 'pridano' %}
+                        <span class="pill pill-ok"><span class="dot"></span>Přidáno</span>
+                        {% elif log.akce == 'upraveno' %}
+                        <span class="pill pill-warn"><span class="dot"></span>Upraveno</span>
+                        {% elif log.akce == 'smazano' %}
+                        <span class="pill pill-danger"><span class="dot"></span>Smazáno</span>
+                        {% else %}
+                        <span class="pill pill-neutral"><span class="dot"></span>{{ log.akce }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="col-name">{{ log.certifikat_nazev or '–' }}</td>
+                    <td class="col-server-plain">{{ log.server or '–' }}</td>
+                    <td class="col-path detail-cell">{{ log.detail or '–' }}</td>
+                </tr>
+                {% endfor %}
+                {% if not logs %}
+                <tr>
+                    <td colspan="5" class="empty-cell">Žádné záznamy</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        {% if pagination and pagination.pages > 1 %}
+        <span class="pagination-info">Strana {{ pagination.page }} z {{ pagination.pages }}</span>
+        <div class="pagination-pages">
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.prev_num }}" class="page-link">Předchozí</a>
             {% endif %}
-        </tbody>
-    </table>
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <a href="?page={{ p }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+            {% else %}
+            <span class="page-ellipsis">…</span>
+            {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.next_num }}" class="page-link">Další</a>
+            {% endif %}
+        </div>
+        {% elif logs %}
+        <span class="pagination-info">Zobrazeno posledních {{ logs|length }} změn</span>
+        {% endif %}
+    </div>
 </div>
-
-{% if pagination and pagination.pages > 1 %}
-<div class="pagination">
-    {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}" class="page-link">
-        <i class="fas fa-chevron-left"></i> Předchozí
-    </a>
-    {% endif %}
-
-    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-    {% if p %}
-    <a href="?page={{ p }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
-    {% else %}
-    <span class="page-ellipsis">…</span>
-    {% endif %}
-    {% endfor %}
-
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}" class="page-link">
-        Další <i class="fas fa-chevron-right"></i>
-    </a>
-    {% endif %}
-</div>
-{% endif %}
 {% endblock %}
