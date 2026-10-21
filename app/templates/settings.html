@@ -3,137 +3,128 @@
 {% block title %}Nastavení{% endblock %}
 
 {% block content %}
-<div class="content-header">
-    <h1><i class="fas fa-cog"></i> Nastavení</h1>
+<div class="page-header">
+    <div>
+        <h1>Nastavení</h1>
+        <p class="page-subtitle">Prahy upozornění, odesílání e-mailů a pravidelné reporty</p>
+    </div>
 </div>
 
-<div class="settings-grid">
-    <!-- Prahy notifikací -->
-    <div class="settings-card">
-        <h3><i class="fas fa-bell"></i> Prahy notifikací</h3>
-        <p class="settings-desc">Nastavte, kolik dnů před expirací se certifikát označí jako kritický nebo varování.</p>
-        <form method="POST" action="{{ url_for('settings.save') }}">
-            <div class="form-group">
-                <label for="alert_days_critical">
-                    <span class="badge badge-danger">Kritické</span> – počet dnů
-                </label>
+<!-- Prahy notifikací -->
+<section class="settings-section">
+    <div class="settings-info">
+        <h2 class="settings-title">Prahy notifikací</h2>
+        <p class="settings-desc">Nastavte, kolik dní před expirací se certifikát označí jako kritický nebo varování.</p>
+    </div>
+    <form method="POST" action="{{ url_for('settings.save') }}" class="settings-fields">
+        <div class="field-row">
+            <div class="field">
+                <label for="alert_days_critical">Kritické – počet dní</label>
                 <input type="number" id="alert_days_critical" name="alert_days_critical"
                     value="{{ settings.get('alert_days_critical', '30') }}" min="1" max="365">
             </div>
-            <div class="form-group">
-                <label for="alert_days_warning">
-                    <span class="badge badge-warning">Varování</span> – počet dnů
-                </label>
+            <div class="field">
+                <label for="alert_days_warning">Varování – počet dní</label>
                 <input type="number" id="alert_days_warning" name="alert_days_warning"
                     value="{{ settings.get('alert_days_warning', '60') }}" min="1" max="365">
             </div>
-            <div class="form-actions">
-                <button type="submit" class="button primary">
-                    <i class="fas fa-save"></i> Uložit prahy
-                </button>
-            </div>
-        </form>
+        </div>
+        <div class="settings-actions">
+            <button type="submit" class="button primary">Uložit prahy</button>
+        </div>
+    </form>
+</section>
+
+<!-- SMTP konfigurace -->
+<section class="settings-section">
+    <div class="settings-info">
+        <h2 class="settings-title">SMTP konfigurace</h2>
+        <p class="settings-desc">Nastavení poštovního serveru. Hodnoty v databázi mají přednost před souborem
+            <code>.env</code>.</p>
     </div>
-
-    <!-- SMTP Configuration -->
-    <div class="settings-card">
-        <form method="POST" action="{{ url_for('settings.save_smtp') }}">
-            <h3><i class="fas fa-server"></i> SMTP Konfigurace</h3>
-            <p class="settings-desc">Nastavení poštovního serveru. Hodnoty v databázi mají přednost před souborem
-                <code>.env</code>.
-            </p>
-
-            <div class="form-group">
-                <label>Server</label>
-                <input type="text" name="mail_server" value="{{ settings.get('mail_server', '') }}"
+    <form method="POST" action="{{ url_for('settings.save_smtp') }}" class="settings-fields">
+        <div class="field-row">
+            <div class="field">
+                <label for="mail_server">Server</label>
+                <input type="text" id="mail_server" name="mail_server" value="{{ settings.get('mail_server', '') }}"
                     placeholder="{{ config.get('MAIL_SERVER', 'localhost') }}">
             </div>
-
-            <div style="display:flex; gap:16px">
-                <div class="form-group" style="flex:1">
-                    <label>Port</label>
-                    <input type="number" name="mail_port" value="{{ settings.get('mail_port', '') }}"
-                        placeholder="{{ config.get('MAIL_PORT', '25') }}">
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label>Odesílatel (From)</label>
-                    <input type="email" name="mail_sender_address" value="{{ settings.get('mail_sender_address', '') }}"
-                        placeholder="{{ config.get('MAIL_SENDER_ADDRESS', '') }}">
-                </div>
+            <div class="field">
+                <label for="mail_port">Port</label>
+                <input type="number" id="mail_port" name="mail_port" value="{{ settings.get('mail_port', '') }}"
+                    placeholder="{{ config.get('MAIL_PORT', '25') }}">
             </div>
-
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="mail_use_tls" name="mail_use_tls" {% if settings.get('mail_use_tls')=='True'
-                    %}checked{% endif %}>
-                <label for="mail_use_tls">Použít TLS zabezpečení</label>
+        </div>
+        <div class="field">
+            <label for="mail_sender_address">Odesílatel (From)</label>
+            <input type="email" id="mail_sender_address" name="mail_sender_address"
+                value="{{ settings.get('mail_sender_address', '') }}"
+                placeholder="{{ config.get('MAIL_SENDER_ADDRESS', '') }}">
+        </div>
+        <label class="check">
+            <input type="checkbox" id="mail_use_tls" name="mail_use_tls" {% if settings.get('mail_use_tls')=='True'
+                %}checked{% endif %}>
+            <span>Použít TLS zabezpečení</span>
+        </label>
+        <div class="field-row">
+            <div class="field">
+                <label for="mail_username">Uživatel (Username)</label>
+                <input type="text" id="mail_username" name="mail_username"
+                    value="{{ settings.get('mail_username', '') }}" autocomplete="off">
             </div>
-
-            <div style="display:flex; gap:16px">
-                <div class="form-group" style="flex:1">
-                    <label>Uživatel (Username)</label>
-                    <input type="text" name="mail_username" value="{{ settings.get('mail_username', '') }}"
-                        autocomplete="off">
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label>Heslo (Password)</label>
-                    <input type="password" name="mail_password" value="{{ settings.get('mail_password', '') }}"
-                        autocomplete="new-password" placeholder="******">
-                </div>
+            <div class="field">
+                <label for="mail_password">Heslo (Password)</label>
+                <input type="password" id="mail_password" name="mail_password"
+                    value="{{ settings.get('mail_password', '') }}" autocomplete="new-password" placeholder="******">
             </div>
+        </div>
+        <div class="settings-actions">
+            <button type="submit" class="button primary">Uložit konfiguraci</button>
+        </div>
+    </form>
+</section>
 
-            <div class="form-actions">
-                <button type="submit" class="button primary">
-                    <i class="fas fa-save"></i> Uložit konfiguraci
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Měsíční reporty -->
-    <div class="settings-card">
-        <h3><i class="fas fa-calendar-alt"></i> Měsíční reporty</h3>
+<!-- Měsíční reporty -->
+<section class="settings-section">
+    <div class="settings-info">
+        <h2 class="settings-title">Měsíční reporty</h2>
         <p class="settings-desc">
             Automatický e-mailový report končících certifikátů. Každé další zaškrtnuté prostředí
-            se odesílá s odstupem {{ report_stagger }} minut, aby maily nepřišly naráz.
-            Pokud byla aplikace v plánovaném čase mimo provoz (např. patching), report se odešle
-            dodatečně po startu.
+            se odesílá s odstupem {{ report_stagger }} minut. Pokud byla aplikace v plánovaném čase
+            mimo provoz (např. patching), report se odešle dodatečně po startu.
         </p>
-        <form method="POST" action="{{ url_for('settings.save_reports') }}">
-            <div class="form-group">
-                <label>Prostředí</label>
-                <div class="env-pills">
-                    {% for env in all_report_envs %}
-                    <label class="env-pill">
-                        <input type="checkbox" name="report_envs" value="{{ env }}"
-                            {% if env in report_envs %}checked{% endif %}>
-                        <span>{{ env|upper }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
-            <div style="display:flex; gap:16px">
-                <div class="form-group" style="flex:1">
-                    <label for="report_day">Den v měsíci</label>
-                    <input type="number" id="report_day" name="report_day" value="{{ report_day }}" min="1" max="28">
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label for="report_hour">Hodina</label>
-                    <input type="number" id="report_hour" name="report_hour" value="{{ report_hour }}" min="0" max="23">
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label for="report_minute">Minuta</label>
-                    <input type="number" id="report_minute" name="report_minute" value="{{ report_minute }}" min="0" max="59">
-                </div>
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="button primary">
-                    <i class="fas fa-save"></i> Uložit plán reportů
-                </button>
-            </div>
-        </form>
     </div>
-
-</div>
-
-
+    <form method="POST" action="{{ url_for('settings.save_reports') }}" class="settings-fields">
+        <div class="field">
+            <span class="field-label">Prostředí</span>
+            <div class="checks">
+                {% for env in all_report_envs %}
+                <label class="check">
+                    <input type="checkbox" name="report_envs" value="{{ env }}" {% if env in report_envs %}checked{%
+                        endif %}>
+                    <span>{{ env|upper }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label for="report_day">Den v měsíci</label>
+                <input type="number" id="report_day" name="report_day" value="{{ report_day }}" min="1" max="28">
+            </div>
+            <div class="field">
+                <label for="report_hour">Hodina</label>
+                <input type="number" id="report_hour" name="report_hour" value="{{ report_hour }}" min="0" max="23">
+            </div>
+            <div class="field">
+                <label for="report_minute">Minuta</label>
+                <input type="number" id="report_minute" name="report_minute" value="{{ report_minute }}" min="0"
+                    max="59">
+            </div>
+        </div>
+        <div class="settings-actions">
+            <button type="submit" class="button primary">Uložit plán reportů</button>
+        </div>
+    </form>
+</section>
 {% endblock %}

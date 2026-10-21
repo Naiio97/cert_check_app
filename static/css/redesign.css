@@ -788,3 +788,128 @@ input[type="checkbox"]#selectAll {
 .history-table .col-action { width: 130px; }
 .history-table .col-server { width: 150px; }
 td.col-server-plain { font-size: 13px; }
+
+/* ─── Nastavení: sekce = popis vlevo, pole vpravo, tlačítko vpravo dole ─── */
+.settings-section {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.settings-info { padding: 28px; }
+
+.settings-title { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--text); }
+.settings-desc { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+
+.settings-desc code {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--bg);
+    font-size: 12px;
+}
+
+.settings-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 28px;
+    border-left: 1px solid var(--border-soft);
+}
+
+.field-row { display: flex; gap: 16px; }
+.field-row .field { flex: 1; min-width: 0; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+
+.field label,
+.field-label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="email"],
+.field input[type="password"] {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field input::placeholder { color: var(--subtle); }
+
+.field input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.checks { display: flex; flex-wrap: wrap; gap: 24px; padding-top: 4px; }
+
+.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.settings-actions { display: flex; justify-content: flex-end; padding-top: 8px; margin-top: auto; }
+
+@media (max-width: 900px) {
+    .settings-section { grid-template-columns: 1fr; }
+    .settings-fields { border-left: none; border-top: 1px solid var(--border-soft); }
+    .field-row { flex-wrap: wrap; }
+}
+
+/* ─── Modální okna: vycentrovaná uprostřed obrazovky ─── */
+.modal {
+    background: rgba(17, 24, 39, 0.45);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    overflow: hidden;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 40px);
+    max-width: 520px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(17, 24, 39, 0.25);
+    animation: modalPop 0.18s ease-out;
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.modal-header { border-bottom: 1px solid var(--border-soft); }
+.modal-footer { border-top: 1px solid var(--border-soft); }
