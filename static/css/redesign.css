@@ -1191,3 +1191,6 @@ td.col-user { font-size: 13px; color: var(--text); }
 .search-bar { border-color: #D1D5DB; }
 .button.small { min-height: 34px; height: 34px; padding: 0 12px; }
 .button.icon-btn, .button.small.icon-btn { border: none; min-height: 32px; width: 32px; height: 32px; padding: 0; }
+
+/* Malá textová tlačítka (např. Uložit v tabulce): starý styl jim nastavoval pevnou šířku 30 px pro ikony */
+.button.small { width: auto; }
