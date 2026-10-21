@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.utils import formatdate, make_msgid
+from email.utils import formatdate, make_msgid, formataddr
 import smtplib
 import ssl
 import calendar
@@ -73,7 +73,10 @@ def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
 
     subject_prefix = cfg.get("MAIL_SUBJECT_PREFIX", "")
     msg["Subject"] = f"{subject_prefix} {subject}".strip()
-    msg["From"] = f"{sender_name} <{sender_addr}>" if sender_name else sender_addr
+    # formataddr zakóduje jen zobrazované jméno; ruční skládání f"{jméno} <adresa>"
+    # s diakritikou zakóduje celou hlavičku vč. adresy, takže ji Exchange Online
+    # nepřečte (header.from= prázdné, dmarc=none) a zprávu zařadí do spamu.
+    msg["From"] = formataddr((sender_name, sender_addr)) if sender_name else sender_addr
     msg["To"] = ", ".join(recipients)
     # Chybějící Date a Message-ID jsou silné spam/phishing signály (Exchange
     # Online je vyhodnocuje v composite authentication) — smtplib je sám nedoplní.
