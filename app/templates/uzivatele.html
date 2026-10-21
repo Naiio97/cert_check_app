@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Uživatelé{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Uživatelé</h1>
+        <p class="page-subtitle">Kdo smí do aplikace a jaká má práva. Noví uživatelé se objeví po prvním přihlášení.</p>
+    </div>
+</div>
+
+<div class="roles-legend card">
+    <div class="legend-item"><span class="pill pill-neutral"><span class="dot"></span>Prohlížení</span>
+        <span>vidí přehledy, historii a může exportovat</span></div>
+    <div class="legend-item"><span class="pill pill-warn"><span class="dot"></span>Úpravy</span>
+        <span>navíc přidává a upravuje certifikáty a servery, importuje</span></div>
+    <div class="legend-item"><span class="pill pill-ok"><span class="dot"></span>Administrátor</span>
+        <span>navíc maže, mění nastavení a spravuje uživatele</span></div>
+</div>
+
+<!-- Přidání uživatele předem -->
+<form method="POST" action="{{ url_for('uzivatele.pridat') }}" class="page-toolbar">
+    <div class="search-bar">
+        <i class="fas fa-user-plus"></i>
+        <input type="text" name="username" placeholder="Doménový účet, např. PMB\jnovak" required>
+    </div>
+    <select name="role" class="inline-select">
+        {% for r in roles %}
+        <option value="{{ r }}">{{ role_labels[r] }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="button primary"><i class="fas fa-plus"></i> Přidat uživatele</button>
+</form>
+
+<div class="table-card">
+    <div class="table-container">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Uživatel</th>
+                    <th class="col-last">Poslední aktivita</th>
+                    <th class="col-role">Role</th>
+                    <th class="col-active">Aktivní</th>
+                    <th class="col-user-actions"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="col-name">
+                        {{ u.label }}
+                        {% if u.role == 'pending' %}<span class="pill pill-warn"><span class="dot"></span>Čeká na schválení</span>{% endif %}
+                    </td>
+                    <td class="col-last">{{ u.posledni_aktivita.strftime('%d.%m.%Y %H:%M') if u.posledni_aktivita else '–' }}</td>
+                    <td class="col-role">
+                        <select name="role" form="u{{ u.id }}" class="inline-select">
+                            {% if u.role == 'pending' %}<option value="pending" selected>Čeká na schválení</option>{% endif %}
+                            {% for r in roles %}
+                            <option value="{{ r }}" {% if u.role == r %}selected{% endif %}>{{ role_labels[r] }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td class="col-active">
+                        <input type="checkbox" name="active" form="u{{ u.id }}" {% if u.active %}checked{% endif %}>
+                    </td>
+                    <td class="col-user-actions">
+                        <button type="submit" form="u{{ u.id }}" class="button small">Uložit</button>
+                        <form method="POST" action="{{ url_for('uzivatele.smazat', id=u.id) }}" class="inline-form-reset"
+                            onsubmit="return confirm('Opravdu smazat uživatele {{ u.label|e }}?')">
+                            <button type="submit" class="button small icon-btn danger" title="Smazat"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not users %}
+                <tr><td colspan="5" class="empty-cell">Zatím se nikdo nepřihlásil</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# Formuláře řádků jsou mimo tabulku (form uvnitř <tr> není platné HTML); pole se k nim vážou atributem form="uN". #}
+{% for u in users %}
+<form method="POST" action="{{ url_for('uzivatele.ulozit', id=u.id) }}" id="u{{ u.id }}"></form>
+{% endfor %}
+{% endblock %}

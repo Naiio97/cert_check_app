@@ -40,7 +40,9 @@
 
 {% block modal_footer_buttons %}
 <button type="button" class="button" onclick="closeModal()">Zavřít</button>
+{% if can('editor') %}
 <button type="button" class="button primary" onclick="upravitCertifikat('{{ certifikat.id }}')">
     <i class="fas fa-pen"></i> Upravit
 </button>
+{% endif %}
 {% endblock %}

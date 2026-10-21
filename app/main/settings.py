@@ -4,12 +4,14 @@ from app import db
 import os
 from app.email_utils import format_date, cz_month_name
 from datetime import date
+from app.auth import role_required
 import calendar
 
 bp = Blueprint('settings', __name__)
 
 
 @bp.route('/nastaveni')
+@role_required('admin')
 def index():
     # Load current settings
     settings_dict = {}
@@ -34,6 +36,7 @@ def index():
 
 
 @bp.route('/nastaveni/ulozit', methods=['POST'])
+@role_required('admin')
 def save():
     try:
         critical = request.form.get('alert_days_critical', '30')
@@ -60,6 +63,7 @@ def save():
 
 
 @bp.route('/nastaveni/save-reports', methods=['POST'])
+@role_required('admin')
 def save_reports():
     from app.tasks import reschedule_reports, ALL_REPORT_ENVS
     try:
@@ -96,6 +100,7 @@ def save_reports():
 
 
 @bp.route('/nastaveni/save-smtp', methods=['POST'])
+@role_required('admin')
 def save_smtp():
     try:
         Settings.set('mail_server', request.form.get('mail_server', ''))

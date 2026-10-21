@@ -1031,3 +1031,108 @@ td.col-server-plain { font-size: 13px; }
 }
 
 .detail-content .detail-row > span { overflow-wrap: anywhere; }
+
+/* ─── Přihlášený uživatel v horní liště ─── */
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-meta { display: flex; flex-direction: column; line-height: 1.2; }
+.user-name { font-size: 13px; font-weight: 600; color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-role { font-size: 11px; color: var(--muted); }
+.user-logout { color: var(--muted); font-size: 14px; padding: 4px; border-radius: 6px; }
+.user-logout:hover { background: var(--bg); color: var(--text); }
+
+/* ─── Přihlášení a odepřený přístup ─── */
+.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
+}
+
+.auth-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 15px; font-weight: 600; }
+.auth-title { font-size: 22px; margin-bottom: 8px; }
+.auth-text { font-size: 14px; color: var(--muted); line-height: 1.55; margin-bottom: 16px; }
+.auth-meta { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.auth-section-title { font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--border-soft); padding-top: 16px; }
+.auth-submit { width: 100%; margin-top: 4px; }
+.auth-actions { display: flex; gap: 10px; }
+.auth-error { padding: 10px 12px; border-radius: 10px; background: #FEE2E2; color: #B91C1C; font-size: 13px; }
+
+/* ─── Správa uživatelů ─── */
+.roles-legend { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 16px 20px; margin-bottom: 20px; }
+.legend-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+
+.inline-select {
+    height: 38px;
+    padding: 0 32px 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.users-table td { height: 60px; }
+.users-table .col-last { width: 180px; color: var(--muted); white-space: nowrap; }
+.users-table .col-role { width: 220px; }
+.users-table .col-active { width: 90px; }
+.users-table .col-user-actions { width: 150px; white-space: nowrap; }
+.users-table input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+.users-table .pill { margin-left: 8px; }
+.inline-form-reset { display: inline; margin: 0; }
+
+.history-table .col-user { width: 190px; white-space: nowrap; }
+td.col-user { font-size: 13px; color: var(--text); }
+
+/* ─── Kompaktnější horní lišta (admin má v navigaci víc položek) ─── */
+.app-header-left { gap: 28px; min-width: 0; flex: 1 1 auto; }
+.app-nav { flex-wrap: nowrap; min-width: 0; }
+.app-nav a { padding: 8px 10px; }
+.env-btn { padding: 7px 12px; }
+.user-meta .user-role { display: none; }
+.user-chip { padding: 4px 12px 4px 4px; }
+
+@media (max-width: 1640px) {
+    .app-nav a i { display: none; }
+    .nav-badge { margin-left: 2px; }
+}
+
+@media (max-width: 1360px) {
+    .app-header .brand-name { display: none; }
+}
+
+/* Obsah lišty zarovnaný se stránkou i na širokých monitorech */
+.app-header { padding: 0 max(40px, calc((100% - 1360px) / 2)); }

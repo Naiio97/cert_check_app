@@ -16,18 +16,22 @@
         <input type="text" id="searchInput" placeholder="Hledat certifikát (název, server, cesta…)"
             oninput="filterTable(this.value)">
     </div>
+    {% if can('editor') %}
     <button onclick="toggleImport()" class="button">
         <i class="fas fa-file-arrow-up"></i>
         Import z Excelu
     </button>
+    {% endif %}
     <a href="{{ url_for('certificates.export_excel') }}" class="button">
         <i class="fas fa-file-arrow-down"></i>
         Export do Excelu
     </a>
+    {% if can('editor') %}
     <a href="{{ url_for('certificates.pridat_certifikat') }}" class="button primary">
         <i class="fas fa-plus"></i>
         Přidat certifikát
     </a>
+    {% endif %}
 </div>
 
 <!-- Informační hláška -->
@@ -91,12 +95,16 @@
                         <a class="button small icon-btn" onclick="zobrazitDetail('{{ cert.id }}')" title="Detail">
                             <i class="fas fa-eye"></i>
                         </a>
+                        {% if can('editor') %}
                         <a class="button small icon-btn" onclick="upravitCertifikat('{{ cert.id }}')" title="Upravit">
                             <i class="fas fa-pen"></i>
                         </a>
+                        {% endif %}
+                        {% if can('admin') %}
                         <a class="button small icon-btn danger" onclick="smazatCertifikat('{{ cert.id }}')" title="Smazat">
                             <i class="fas fa-trash"></i>
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -132,9 +140,11 @@
 <!-- Floating bulk toolbar -->
 <div id="bulkToolbar" class="bulk-toolbar" style="display:none">
     <span class="bulk-count"><span id="bulkCount">0</span> vybráno</span>
+    {% if can('admin') %}
     <button class="button danger" onclick="bulkDelete()">
         <i class="fas fa-trash"></i> Smazat vybrané
     </button>
+    {% endif %}
     <button class="button success" onclick="bulkExport()">
         <i class="fas fa-file-export"></i> Export vybraných
     </button>

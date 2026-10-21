@@ -11,10 +11,12 @@
             <i class="fas fa-arrow-left"></i>
             Zpět na přehled
         </a>
+        {% if can('editor') %}
         <button onclick="pridatServer()" class="button primary">
             <i class="fas fa-plus"></i>
             Přidat server
         </button>
+        {% endif %}
     </div>
 </div>
 
@@ -42,12 +44,16 @@
                         <a class="button small icon-btn" onclick="zobrazitServerDetail('{{ server.id }}')" title="Detail">
                             <i class="fas fa-eye"></i>
                         </a>
+                        {% if can('editor') %}
                         <a class="button small icon-btn" onclick="upravitServer('{{ server.id }}')" title="Upravit">
                             <i class="fas fa-pen"></i>
                         </a>
+                        {% endif %}
+                        {% if can('admin') %}
                         <a class="button small icon-btn danger" onclick="smazatServer('{{ server.id }}')" title="Smazat">
                             <i class="fas fa-trash"></i>
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

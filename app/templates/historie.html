@@ -19,6 +19,7 @@
                     <th class="col-action">Akce</th>
                     <th>Certifikát</th>
                     <th class="col-server">Server</th>
+                    <th class="col-user">Uživatel</th>
                     <th>Detail</th>
                 </tr>
             </thead>
@@ -39,12 +40,13 @@
                     </td>
                     <td class="col-name">{{ log.certifikat_nazev or '–' }}</td>
                     <td class="col-server-plain">{{ log.server or '–' }}</td>
+                    <td class="col-user">{{ log.uzivatel or '–' }}</td>
                     <td class="col-path detail-cell">{{ log.detail or '–' }}</td>
                 </tr>
                 {% endfor %}
                 {% if not logs %}
                 <tr>
-                    <td colspan="5" class="empty-cell">Žádné záznamy</td>
+                    <td colspan="6" class="empty-cell">Žádné záznamy</td>
                 </tr>
                 {% endif %}
             </tbody>

@@ -579,6 +579,95 @@ certifikaty_sit.db
 certifikaty_prelive.db
 ```
 
+## 10. Přihlášení (Windows SSO) a role
+
+Aplikace pozná uživatele podle Windows účtu, pod kterým je přihlášený na svém PC. Ověření dělá **IIS**
+(Windows Authentication) a předá aplikaci jméno účtu v hlavičce `X-Remote-User`. Aplikace jen ověřuje, že hlavička
+přišla z důvěryhodné adresy (`AUTH_TRUSTED_PROXIES`, výchozí `127.0.0.1`), a podle účtu přidělí **roli**.
+
+| Role | Co smí |
+|---|---|
+| **Prohlížení** (`viewer`) | přehled, končící certifikáty, servery, historie, export |
+| **Úpravy** (`editor`) | navíc přidávat a upravovat certifikáty a servery, import z Excelu |
+| **Administrátor** (`admin`) | navíc mazat, nastavení (SMTP, prahy, reporty), odeslání reportu, správa uživatelů |
+
+Nový uživatel se po prvním otevření aplikace objeví na stránce **Uživatelé** jako „Čeká na schválení“ a do té doby
+nemá přístup. Admin mu tam přidělí roli. Každá změna v **Historii** nese jméno uživatele, který ji provedl.
+
+### 10.1 Nastavení v `.env`
+
+```
+ADMIN_USERS=PMB\jnovak,PMB\ibadmin       # první administrátoři (stále admin, i kdyby jim někdo roli změnil)
+LOCAL_ADMIN_USER=admin                    # záložní lokální admin pro případ nedostupnosti SSO
+LOCAL_ADMIN_PASSWORD_HASH='...'           # hash hesla, bez něj je záložní účet vypnutý
+SECRET_KEY=...                            # povinně nastavit (podepisuje přihlášení lokálního admina)
+```
+
+Hash hesla záložního admina:
+
+```
+venv\Scripts\python.exe -c "from werkzeug.security import generate_password_hash as g; print(g('NOVE-HESLO'))"
+```
+
+Výsledek vložte do `.env` do jednoduchých uvozovek. Záložní admin se přihlašuje na `/evidence_certifikatu/login`.
+
+### 10.2 Nastavení IIS (jednorázově na serveru)
+
+Aplikace dál běží jako služba `evidence_cert` (waitress, port 8080). IIS se před ni postaví jako reverzní proxy,
+která ověří uživatele.
+
+1. **Role a moduly IIS:** Windows Authentication (Server Manager → Add Roles → Web Server → Security),
+   [URL Rewrite](https://www.iis.net/downloads/microsoft/url-rewrite) a
+   [Application Request Routing](https://www.iis.net/downloads/microsoft/application-request-routing).
+2. **ARR:** IIS Manager → server → *Application Request Routing Cache* → *Server Proxy Settings* → zaškrtnout
+   *Enable proxy*.
+3. **Web:** vytvořit site (nebo aplikaci) na adrese, kterou budou uživatelé otevírat, a u ní
+   *Authentication*: **Anonymous Authentication = Disabled**, **Windows Authentication = Enabled**.
+4. **Povolit proměnnou:** site → *URL Rewrite* → *View Server Variables…* → *Add…* → `HTTP_X_REMOTE_USER`.
+5. **`web.config`** ve složce webu:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="CertApp" stopProcessing="true">
+          <match url="(.*)" />
+          <serverVariables>
+            <set name="HTTP_X_REMOTE_USER" value="{LOGON_USER}" />
+          </serverVariables>
+          <action type="Rewrite" url="http://127.0.0.1:8080/{R:1}" />
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>
+```
+
+Pravidlo hlavičku vždy přepíše, takže ji klient nemůže podvrhnout.
+
+6. **Prohlížeče:** aby se přihlášení stalo bez ptaní na heslo, musí být adresa aplikace v zóně *Místní intranet*
+   (běžně řeší GPO). Jinak Edge/Chrome jednou požádají o doménové heslo.
+7. **Volitelně zpřísnit:** po ověření funkčnosti přepnout službu na `--host=127.0.0.1`, aby šlo do aplikace jen přes IIS:
+   `nssm set evidence_cert AppParameters "-m waitress --host=127.0.0.1 --port=8080 wsgi:app"`.
+   Do `APP_URL` pak patří adresa přes IIS.
+
+> Tuto část jsem nemohl vyzkoušet na vašem serveru. Po nasazení ověřte, že se v pravém horním rohu aplikace zobrazí
+> vaše jméno a role. Pokud ne, podívejte se, jestli IIS skutečně posílá hlavičku (`X-Remote-User`) a jestli aplikace
+> vidí požadavky z adresy v `AUTH_TRUSTED_PROXIES`.
+
+### 10.3 Vývoj bez IIS
+
+Na vývojovém PC (WSL) není SSO k dispozici. Do `.env` dejte buď záložního admina (`LOCAL_ADMIN_PASSWORD_HASH`),
+nebo simulovaný účet jen pro localhost: `AUTH_DEV_USER=PMB\jnovak` a ten samý účet do `ADMIN_USERS`.
+Na produkci `AUTH_DEV_USER` nenastavujte.
+
+### 10.4 Nouzové vypnutí
+
+`AUTH_ENABLED=false` v `.env` vypne přihlášení úplně (každý je admin). Používat jen dočasně a vědomě, např. při
+chybném nastavení IIS. Při startu se do logu zapíše varování.
+
 ---
 
 *Dokument aktualizován: 2026-06-10*

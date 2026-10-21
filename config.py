@@ -36,6 +36,21 @@ class Config:
     MAIL_RECIPIENTS = os.environ.get('MAIL_RECIPIENTS', 'test@test.cz')
     # Adresa aplikace pro tlačítko "Otevřít evidenci certifikátů" v e-mailech (prázdné = bez tlačítka)
     APP_URL = os.environ.get('APP_URL', '')
+
+    # ── Autentizace ──
+    # Zapnuto vždy, vypnout lze jen vědomě (AUTH_ENABLED=false) — pak je každý návštěvník admin.
+    AUTH_ENABLED = os.environ.get('AUTH_ENABLED', 'true').lower() != 'false'
+    # Hlavičku s doménovým účtem nastavuje IIS (Windows autentizace) a důvěřujeme jí
+    # jen z adres v AUTH_TRUSTED_PROXIES (výchozí: reverzní proxy na stejném serveru).
+    AUTH_REMOTE_USER_HEADER = os.environ.get('AUTH_REMOTE_USER_HEADER', 'X-Remote-User')
+    AUTH_TRUSTED_PROXIES = [a.strip() for a in os.environ.get('AUTH_TRUSTED_PROXIES', '127.0.0.1,::1').split(',') if a.strip()]
+    # Účty, které jsou vždy admin (čárkou oddělené, např. PMB\\jnovak,PMB\\ibadmin) — pro první nastavení.
+    ADMIN_USERS = [a.strip().lower() for a in os.environ.get('ADMIN_USERS', '').split(',') if a.strip()]
+    # Lokální záložní admin pro případ, že SSO nefunguje (hash: viz DEPLOY.md). Bez hashe je vypnutý.
+    LOCAL_ADMIN_USER = os.environ.get('LOCAL_ADMIN_USER', 'admin')
+    LOCAL_ADMIN_PASSWORD_HASH = os.environ.get('LOCAL_ADMIN_PASSWORD_HASH', '')
+    # Pouze pro vývoj bez IIS: simulovaný doménový účet pro požadavky z localhostu.
+    AUTH_DEV_USER = os.environ.get('AUTH_DEV_USER', '')
     
     # Vytvoření potřebných složek
     @staticmethod

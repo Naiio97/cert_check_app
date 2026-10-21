@@ -1,26 +1,11 @@
 from app import create_app, db
-from app.models import Certifikat, Server
 from flask import redirect
 
 app = create_app()
 
-# Vytvoření databáze — zajistíme tabulky ve všech bindech.
-# Modely mají __bind_key__ = 'live', takže jsou registrované v db.metadatas['live'].
-# Stejné schéma chceme vytvořit i v test/sit/prelive enginech.
-with app.app_context():
-    from flask import current_app
-    # Flask-SQLAlchemy 3.x: tabulky jsou v metadatě příslušného bind_key
-    live_meta = db.metadatas.get('live') if hasattr(db, 'metadatas') else db.metadata
-    for env in ('live', 'uat', 'sit', 'prelive'):
-        try:
-            try:
-                engine = db.engines[env]
-            except Exception:
-                engine = db.get_engine(current_app, bind=env)
-            live_meta.create_all(bind=engine)
-            app.logger.info('DB init OK: %s', env)
-        except Exception as e:
-            app.logger.warning('DB init selhalo pro %s: %s', env, e)
+# Tabulky a drobné migrace schématu ve všech prostředích (live, uat, sit, prelive)
+from app.db_init import init_databases
+init_databases(app)
 
 @app.route('/', endpoint='root')
 def root_redirect():

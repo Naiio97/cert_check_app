@@ -83,7 +83,7 @@ if errorlevel 1 (
 )
 
 echo [4/6] Migrace databazi (live, uat, sit, prelive) ...
-venv\Scripts\python.exe -c "from app import create_app,db; app=create_app(); ctx=app.app_context(); ctx.push(); meta=db.metadatas.get('live') if hasattr(db,'metadatas') else db.metadata; [meta.create_all(bind=db.engines[e]) or print('[OK] DB: '+e) for e in ('live','uat','sit','prelive')]; ctx.pop()"
+venv\Scripts\python.exe -c "from app import create_app; from app.db_init import init_databases; app=create_app(); init_databases(app, lambda env, ok, err: print('[OK] DB: ' + env if ok else '[CHYBA] DB: ' + env + ' ' + str(err)))"
 if errorlevel 1 (
     echo [VAROVANI] DB migrace selhala - tabulky budou overeny pri startu.
 ) else (

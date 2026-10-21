@@ -76,6 +76,7 @@ class AuditLog(db.Model):
     certifikat_nazev = db.Column(db.String(100))
     server = db.Column(db.String(100))
     detail = db.Column(db.Text)                           # JSON or free text
+    uzivatel = db.Column(db.String(100))                  # kdo změnu provedl (doménový účet / lokální admin)
     cas = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -104,3 +105,25 @@ class Settings(db.Model):
             s = Settings(key=key, value=str(value))
             db.session.add(s)
         db.session.commit() 
+
+class User(db.Model):
+    """Uživatel aplikace. Identita přichází z Windows autentizace (IIS), role přiděluje admin."""
+    __bind_key__ = 'live'
+    # Uživatelé jsou společní pro všechna prostředí — RoutingSession je vždy směruje do live DB.
+    __global_table__ = True
+
+    __tablename__ = 'app_user'
+
+    ROLES = ('pending', 'viewer', 'editor', 'admin')
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)   # normalizovaně malými písmeny
+    display_name = db.Column(db.String(100))                            # jak se účet přihlásil (DOMENA\\jmeno)
+    role = db.Column(db.String(20), nullable=False, default='pending')
+    active = db.Column(db.Boolean, nullable=False, default=True)
+    vytvoreno = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    posledni_aktivita = db.Column(db.DateTime)
+
+    @property
+    def label(self):
+        return self.display_name or self.username

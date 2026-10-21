@@ -282,12 +282,12 @@ function updateTable(data) {
                     <a class="button small icon-btn" onclick="zobrazitDetail(${cert.id})" title="Detail">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a class="button small icon-btn" onclick="upravitCertifikat(${cert.id})" title="Upravit">
+                    ${(window.APP_CAN || {}).edit ? `<a class="button small icon-btn" onclick="upravitCertifikat(${cert.id})" title="Upravit">
                         <i class="fas fa-pen"></i>
-                    </a>
-                    <a class="button small icon-btn danger" onclick="smazatCertifikat(${cert.id})" title="Smazat">
+                    </a>` : ''}
+                    ${(window.APP_CAN || {}).del ? `<a class="button small icon-btn danger" onclick="smazatCertifikat(${cert.id})" title="Smazat">
                         <i class="fas fa-trash"></i>
-                    </a>
+                    </a>` : ''}
                 </td>
             `;
             tbody.appendChild(row);

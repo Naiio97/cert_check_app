@@ -9,6 +9,7 @@ import os
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from app import get_expiry_class  # Přidejte tento import na začátek souboru
+from app.auth import role_required, current_username
 from tempfile import NamedTemporaryFile
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.styles.differential import DifferentialStyle
@@ -17,6 +18,7 @@ from openpyxl.formatting.rule import Rule
 bp = Blueprint('certificates', __name__)
 
 @bp.route('/pridat', methods=['GET', 'POST'])
+@role_required('editor')
 def pridat_certifikat():
     if request.method == 'POST':
         try:
@@ -32,6 +34,7 @@ def pridat_certifikat():
             db.session.add(novy_cert)
             db.session.flush()
             db.session.add(AuditLog(
+                uzivatel=current_username(),
                 akce='pridano',
                 certifikat_nazev=novy_cert.nazev,
                 server=novy_cert.server,
@@ -56,6 +59,7 @@ def pridat_certifikat():
     return render_template('formular.html', certifikat=None, servery=servery)
 
 @bp.route('/get-edit-form/<int:id>')
+@role_required('editor')
 def get_edit_form(id):
     try:
         certifikat = Certifikat.query.get_or_404(id)
@@ -66,6 +70,7 @@ def get_edit_form(id):
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/upravit/<int:id>', methods=['GET', 'POST'])
+@role_required('editor')
 def upravit_certifikat(id):
     certifikat = Certifikat.query.get_or_404(id)
     servery = Server.query.all()
@@ -84,6 +89,7 @@ def upravit_certifikat(id):
             certifikat.poznamka = request.form.get('poznamka', '')
             
             db.session.add(AuditLog(
+                uzivatel=current_username(),
                 akce='upraveno',
                 certifikat_nazev=certifikat.nazev,
                 server=certifikat.server,
@@ -107,11 +113,13 @@ def upravit_certifikat(id):
                          servery=servery)
 
 @bp.route('/smazat/<int:id>', methods=['POST'])
+@role_required('admin')
 def smazat_certifikat(id):
     try:
         certifikat = Certifikat.query.get_or_404(id)
         current_app.logger.info('Mazání certifikátu: %s ze serveru %s', certifikat.nazev, certifikat.server)
         db.session.add(AuditLog(
+                uzivatel=current_username(),
             akce='smazano',
             certifikat_nazev=certifikat.nazev,
             server=certifikat.server,
@@ -126,6 +134,7 @@ def smazat_certifikat(id):
     return redirect(url_for('main.index'))
 
 @bp.route('/import-excel', methods=['POST'])
+@role_required('editor')
 def import_excel():
     try:
         current_app.logger.info('Začátek importu z Excelu')
@@ -338,6 +347,7 @@ def export_excel():
         return redirect(url_for('main.index'))
 
 @bp.route('/smazat-vse', methods=['POST'])
+@role_required('admin')
 def smazat_vse():
     try:
         # Smazat pouze v aktivním prostředí (live/test)
@@ -350,6 +360,7 @@ def smazat_vse():
             conn.execute(text('DELETE FROM certifikat'))
             conn.execute(text('DELETE FROM server'))
         db.session.add(AuditLog(
+                uzivatel=current_username(),
             akce='smazano',
             certifikat_nazev='VŠE',
             server='VŠE',
@@ -408,6 +419,7 @@ def get_certifikaty_server(server):
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/smazat-vybrane', methods=['POST'])
+@role_required('admin')
 def smazat_vybrane():
     """Bulk delete: accepts JSON { ids: [1, 2, 3] }"""
     try:
@@ -421,6 +433,7 @@ def smazat_vybrane():
             cert = Certifikat.query.get(cert_id)
             if cert:
                 db.session.add(AuditLog(
+                uzivatel=current_username(),
                     akce='smazano',
                     certifikat_nazev=cert.nazev,
                     server=cert.server,

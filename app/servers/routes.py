@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app, flash, redirect, url
 from app.models import Server, Certifikat
 from app import db
 from datetime import datetime
+from app.auth import role_required
 
 bp = Blueprint('servers', __name__)
 
@@ -31,6 +32,7 @@ def seznam_serveru():
         return redirect(url_for('main.index'))
 
 @bp.route('/servery/pridat', methods=['GET', 'POST'])
+@role_required('editor')
 def pridat_server():
     if request.method == 'POST':
         nazev = request.form['nazev']
@@ -68,6 +70,7 @@ def detail_serveru(id):
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/servery/upravit/<int:id>', methods=['GET', 'POST'])
+@role_required('editor')
 def upravit_server(id):
     server = Server.query.get_or_404(id)
     
@@ -96,6 +99,7 @@ def upravit_server(id):
     return render_template('server_edit_modal.html', server=server)
 
 @bp.route('/servery/smazat/<int:id>', methods=['POST'])
+@role_required('admin')
 def smazat_server(id):
     try:
         server = Server.query.get_or_404(id)

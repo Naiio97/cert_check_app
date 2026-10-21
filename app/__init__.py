@@ -76,6 +76,12 @@ def create_app(config_class=Config):
     from app.main.settings import bp as settings_bp
     app.register_blueprint(settings_bp, url_prefix='/evidence_certifikatu')
 
+    from app.main.uzivatele import bp as uzivatele_bp
+    app.register_blueprint(uzivatele_bp, url_prefix='/evidence_certifikatu')
+
+    from app.auth import bp as auth_bp, enforce_auth
+    app.register_blueprint(auth_bp, url_prefix='/evidence_certifikatu')
+
     def _expiring_count(env):
         # Počet certifikátů, které už vypršely nebo vyprší do 'alert_days_warning' dnů —
         # číslo ve štítku u položky "Končící certifikáty" v horní liště.
@@ -106,6 +112,15 @@ def create_app(config_class=Config):
         if env not in ('live', 'uat', 'sit', 'prelive'):
             env = 'live'
         g.db_bind = env
+
+    # Kontrola přihlášení a rolí běží až po výběru prostředí
+    app.before_request(enforce_auth)
+
+    if app.config['AUTH_ENABLED'] and app.config['SECRET_KEY'] == 'fallback-zmenit-v-produkci' and not app.debug:
+        app.logger.warning('SECRET_KEY není nastaven v .env — přihlášení lokálního admina používá výchozí klíč!')
+    if not app.config['AUTH_ENABLED']:
+        app.logger.warning('AUTH_ENABLED=false — aplikace běží BEZ přihlášení, každý návštěvník je admin!')
+
     
 
     # Nastavení pokročilého logování (musí být před schedulerem, aby se logy zachytily)

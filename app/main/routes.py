@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, current_app, jsonify, request, g
 from app.models import Certifikat, Server
 from datetime import datetime
+from app.auth import role_required
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/send-report', methods=['POST'])
+@role_required('admin')
 def send_report():
     """Ručně odešle měsíční report (stejný jako automatický)."""
     try:

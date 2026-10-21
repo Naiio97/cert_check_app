@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Přihlášení – Správa certifikátů</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4.5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/redesign.css') }}?v=12">
+</head>
+
+<body class="env-live auth-page">
+    <main class="auth-card">
+        <div class="auth-brand">
+            <span class="brand-mark"><i class="fas fa-shield-halved"></i></span>
+            <span class="brand-name">Správa certifikátů</span>
+        </div>
+        <h1 class="auth-title">Přihlášení</h1>
+        <p class="auth-text">Aplikace vás přihlašuje automaticky podle účtu, pod kterým jste přihlášen do Windows.
+            Pokud se to nepodařilo, otevřete aplikaci přes její firemní adresu a zkuste to znovu.</p>
+
+        {% if local_enabled %}
+        <form method="POST" class="auth-form">
+            <p class="auth-section-title">Záložní přihlášení administrátora</p>
+            {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="field">
+                <label for="username">Uživatel</label>
+                <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+                <label for="password">Heslo</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="button primary auth-submit">Přihlásit se</button>
+        </form>
+        {% else %}
+        <p class="auth-text">Záložní lokální přihlášení není nastaveno (<code>LOCAL_ADMIN_PASSWORD_HASH</code> v <code>.env</code>).</p>
+        {% endif %}
+    </main>
+</body>
+
+</html>

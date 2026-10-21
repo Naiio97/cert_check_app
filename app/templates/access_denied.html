@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Přístup odepřen – Správa certifikátů</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4.5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/redesign.css') }}?v=12">
+</head>
+
+<body class="env-live auth-page">
+    <main class="auth-card">
+        <div class="auth-brand">
+            <span class="brand-mark"><i class="fas fa-shield-halved"></i></span>
+            <span class="brand-name">Správa certifikátů</span>
+        </div>
+        <h1 class="auth-title">Přístup odepřen</h1>
+        <p class="auth-text">{{ message }}</p>
+        {% if user %}
+        <p class="auth-meta">Přihlášen jako <strong>{{ user.label }}</strong></p>
+        {% endif %}
+        <div class="auth-actions">
+            {% if user and user.can('viewer') %}
+            <a href="{{ url_for('main.index') }}" class="button">Zpět na přehled</a>
+            {% endif %}
+            <a href="{{ url_for('auth.login') }}" class="button">Přihlášení</a>
+        </div>
+    </main>
+</body>
+
+</html>
