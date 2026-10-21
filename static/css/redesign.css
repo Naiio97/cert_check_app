@@ -1149,3 +1149,9 @@ td.col-user { font-size: 13px; color: var(--text); }
 .settings-fields .table-card { border-radius: 10px; }
 .settings-fields .users-table th:first-child,
 .settings-fields .users-table td:first-child { padding-left: 16px; }
+
+/* Pole pro přidání uživatele: input, výběr role a tlačítko stejně vysoké */
+.users-add .search-bar,
+.users-add .inline-select,
+.users-add .button { height: 42px; }
+.users-add .inline-select { padding-left: 14px; }
