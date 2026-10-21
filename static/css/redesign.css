@@ -1155,3 +1155,23 @@ td.col-user { font-size: 13px; color: var(--text); }
 .users-add .inline-select,
 .users-add .button { height: 42px; }
 .users-add .inline-select { padding-left: 14px; }
+
+/* Přepínač prostředí a menu uživatele: stejná výška, stejné ohraničení */
+.env-switch {
+    align-items: center;
+    box-sizing: border-box;
+    height: 40px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.env-btn { height: 32px; padding: 0 12px; border-radius: 7px; }
+
+.menu-button {
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
