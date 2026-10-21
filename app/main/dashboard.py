@@ -42,7 +42,9 @@ def index():
                              stats=stats,
                              ending_certs=ending_certs,
                              server_stats=server_stats,
-                             today=today)
+                             today=today,
+                             critical_days=critical_days,
+                             warning_days=warning_days)
     except Exception as e:
         current_app.logger.error('Chyba při načítání dashboardu: %s', e)
         flash('Chyba při načítání dashboardu', 'error')

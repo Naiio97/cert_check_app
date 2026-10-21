@@ -33,14 +33,14 @@
     --text: #111827;
     --muted: #6B7280;
     --subtle: #9CA3AF;
-    --primary: #4F46E5;
-    --primary-soft: #EEF0FF;
+    --primary: #111827;
+    --primary-soft: #F1F2F5;
     --danger: #DC2626;
 
     /* Přepis proměnných starého style.css → plochý vzhled bez průhlednosti */
-    --primary-light: #6366F1;
-    --primary-dark: #4338CA;
-    --primary-glow: rgba(79, 70, 229, 0.18);
+    --primary-light: #374151;
+    --primary-dark: #000000;
+    --primary-glow: rgba(17, 24, 39, 0.12);
     --text-secondary: var(--muted);
     --text-muted: var(--subtle);
     --glass-bg: var(--surface);
@@ -354,7 +354,7 @@ h1 {
     font-weight: 600;
 }
 
-.button.primary:hover { background: #4338CA; border-color: #4338CA; box-shadow: none; }
+.button.primary:hover { background: #000; border-color: #000; box-shadow: none; }
 .button.primary i { color: #fff; }
 
 .button.info,
@@ -660,4 +660,118 @@ input[type="checkbox"]#selectAll {
     .app-nav { flex-wrap: wrap; }
     .app-main { padding: 24px 20px 40px; }
     .page-toolbar { flex-wrap: wrap; }
+}
+
+/* ─── Karty (Končící certifikáty a další přehledy) ─── */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.card-header { padding: 16px 20px; }
+.card-header-split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.card-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.card-meta { font-size: 13px; color: var(--muted); }
+
+.card-footer {
+    display: flex;
+    justify-content: center;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.page-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Statistiky */
+.stats-card {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.stat {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-right: 1px solid var(--border-soft);
+}
+
+.stat:last-child { border-right: none; }
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+}
+
+.stat-value { font-size: 36px; font-weight: 700; line-height: 1.15; color: var(--text); }
+.stat-caption { font-size: 13px; color: var(--muted); }
+
+/* Tóny stavů: červená = po expiraci, oranžová = kritické, žlutá = varování */
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--subtle); }
+.dot-danger { background: #DC2626; }
+.dot-crit { background: #EA580C; }
+.dot-warn { background: #D97706; }
+.dot-neutral { background: #9CA3AF; }
+.tone-danger { color: #DC2626; }
+.tone-crit { color: #EA580C; }
+.tone-warn { color: #D97706; }
+
+.pill-crit { background: #FFEDD5; color: #C2410C; }
+.pill-neutral { background: #F3F4F6; color: #4B5563; }
+.pill .dot { width: 6px; height: 6px; margin-right: 6px; }
+.pill-danger .dot { background: #DC2626; }
+.pill-crit .dot { background: #EA580C; }
+.pill-warn .dot { background: #D97706; }
+.pill-neutral .dot { background: #9CA3AF; }
+
+/* Počty podle serverů */
+.server-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0 20px 20px;
+}
+
+.server-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #F9FAFB;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+}
+
+.server-chip-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.server-chip-count { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* Tabulka končících certifikátů */
+.card .table-container { margin: 0; background: none; border: none; border-radius: 0; box-shadow: none; overflow-x: auto; }
+.ending-table td { height: 56px; }
+.ending-table .col-server { width: 170px; white-space: nowrap; }
+.ending-table .col-name-wide { width: 240px; }
+.ending-table .col-date { width: 120px; white-space: nowrap; }
+.ending-table .col-left { width: 150px; }
+.ending-table td.col-name { width: 240px; }
+.ending-row[hidden] { display: none; }
+.empty-cell { text-align: center; color: var(--muted); height: 80px; }
+
+@media (max-width: 900px) {
+    .stats-card { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(2) { border-right: none; }
+    .stat:nth-child(-n+2) { border-bottom: 1px solid var(--border-soft); }
 }

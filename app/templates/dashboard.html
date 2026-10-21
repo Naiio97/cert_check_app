@@ -3,78 +3,126 @@
 {% block title %}Přehled končících certifikátů{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <div class="header">
+{% set visible_rows = 10 %}
+<div class="page-header">
+    <div>
         <h1>Končící certifikáty</h1>
-        <a href="{{ url_for('main.index') }}" class="button info">
+        <p class="page-subtitle">Certifikáty po expiraci a ty, kterým brzy vyprší platnost</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('main.index') }}" class="button">
             <i class="fas fa-arrow-left"></i>
             Zpět na přehled
         </a>
     </div>
+</div>
 
-    <!-- Statistiky -->
-    <div class="stats-container">
-        <div class="stat-box cert-expired">
-            <h3>Vypršelé</h3>
-            <p>{{ stats.expired }}</p>
-            <small>již po expiraci</small>
-        </div>
-        <div class="stat-box cert-expired">
-            <h3>Kritické</h3>
-            <p>{{ stats.critical }}</p>
-            <small>končí do 30 dnů</small>
-        </div>
-        <div class="stat-box cert-warning">
-            <h3>Varování</h3>
-            <p>{{ stats.warning }}</p>
-            <small>končí do 60 dnů</small>
-        </div>
-        <div class="stat-box cert-ending-year">
-            <h3>Tento rok</h3>
-            <p>{{ stats.this_year }}</p>
-            <small>celkem (vč. vypršelých)</small>
-        </div>
+<!-- Statistiky -->
+<div class="card stats-card">
+    <div class="stat">
+        <div class="stat-label"><span class="dot dot-danger"></span>VYPRŠELÉ</div>
+        <div class="stat-value tone-danger">{{ stats.expired }}</div>
+        <div class="stat-caption">již po expiraci</div>
     </div>
-
-    <!-- Statistiky podle serverů -->
-    <div class="server-stats">
-        <h2>Přehled podle serverů</h2>
-        <div class="server-stats-grid">
-            {% for server, count in server_stats %}
-            <div class="server-stat-card">
-                <div class="server-name">{{ server }}</div>
-                <div class="server-count">{{ count }}</div>
-                <div class="server-label">certifikátů</div>
-            </div>
-            {% endfor %}
-        </div>
+    <div class="stat">
+        <div class="stat-label"><span class="dot dot-crit"></span>KRITICKÉ</div>
+        <div class="stat-value tone-crit">{{ stats.critical }}</div>
+        <div class="stat-caption">končí do {{ critical_days }} dnů</div>
     </div>
+    <div class="stat">
+        <div class="stat-label"><span class="dot dot-warn"></span>VAROVÁNÍ</div>
+        <div class="stat-value tone-warn">{{ stats.warning }}</div>
+        <div class="stat-caption">končí do {{ warning_days }} dnů</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label"><span class="dot dot-neutral"></span>TENTO ROK</div>
+        <div class="stat-value">{{ stats.this_year }}</div>
+        <div class="stat-caption">celkem (vč. vypršelých)</div>
+    </div>
+</div>
 
-    <!-- Tabulka končících certifikátů -->
+<!-- Přehled podle serverů -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Přehled podle serverů</h2>
+    </div>
+    <div class="server-counts">
+        {% for server, count in server_stats %}
+        <div class="server-chip">
+            <span class="server-chip-name">{{ server }}</span>
+            <span class="server-chip-count">{{ count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tabulka končících certifikátů -->
+<div class="card">
+    <div class="card-header card-header-split">
+        <h2 class="card-title">Končící certifikáty</h2>
+        <span class="card-meta" id="endingCount" data-total="{{ ending_certs|length }}">
+            Zobrazeno {{ [ending_certs|length, visible_rows]|min }} z {{ ending_certs|length }}
+        </span>
+    </div>
     <div class="table-container">
-        <h2 style="padding: 16px 16px 0;">Končící certifikáty</h2>
-        <table>
+        <table class="ending-table">
             <thead>
                 <tr>
-                    <th>Server</th>
+                    <th class="col-server">Server</th>
                     <th>Cesta</th>
-                    <th>Název</th>
-                    <th>Expirace</th>
-                    <th>Zbývá dnů</th>
+                    <th class="col-name-wide">Název</th>
+                    <th class="col-date">Expirace</th>
+                    <th class="col-left">Zbývá</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="endingBody">
                 {% for cert in ending_certs %}
-                <tr class="{{ cert|get_expiry_class }}">
-                    <td>{{ cert.server }}</td>
-                    <td>{{ cert.cesta }}</td>
-                    <td>{{ cert.nazev }}</td>
-                    <td>{{ cert.expirace.strftime('%d.%m.%Y') }}</td>
-                    <td>{{ (cert.expirace - today).days }}</td>
+                {% set days = (cert.expirace - today).days %}
+                {% if days < 0 %}{% set tone = 'danger' %}
+                {% elif days <= critical_days %}{% set tone = 'crit' %}
+                {% elif days <= warning_days %}{% set tone = 'warn' %}
+                {% else %}{% set tone = 'neutral' %}{% endif %}
+                <tr class="ending-row{% if loop.index > visible_rows %} is-extra{% endif %}"{% if loop.index > visible_rows %} hidden{% endif %}>
+                    <td class="col-server">{{ cert.server }}</td>
+                    <td class="col-path">{{ cert.cesta }}</td>
+                    <td class="col-name">{{ cert.nazev }}</td>
+                    <td class="col-date">{{ cert.expirace.strftime('%d.%m.%Y') }}</td>
+                    <td class="col-left">
+                        <span class="pill pill-{{ tone }}"><span class="dot dot-{{ tone }}"></span>{{ '−%d' % (-days) if days < 0 else days }} dní</span>
+                    </td>
                 </tr>
                 {% endfor %}
+                {% if not ending_certs %}
+                <tr><td colspan="5" class="empty-cell">Žádné končící certifikáty</td></tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
+    {% if ending_certs|length > visible_rows %}
+    <div class="card-footer">
+        <button type="button" class="button" id="endingToggle" data-more="Zobrazit všech {{ ending_certs|length }}"
+            data-less="Zobrazit méně">
+            Zobrazit všech {{ ending_certs|length }}
+        </button>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    (function () {
+        const toggle = document.getElementById('endingToggle');
+        if (!toggle) return;
+        const rows = document.querySelectorAll('#endingBody .is-extra');
+        const count = document.getElementById('endingCount');
+        const total = Number(count.dataset.total);
+        const base = total - rows.length;
+        let open = false;
+        toggle.addEventListener('click', function () {
+            open = !open;
+            rows.forEach(r => { r.hidden = !open; });
+            count.textContent = `Zobrazeno ${open ? total : base} z ${total}`;
+            toggle.textContent = open ? toggle.dataset.less : toggle.dataset.more;
+        });
+    })();
+</script>
 {% endblock %}
