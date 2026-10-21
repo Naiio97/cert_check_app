@@ -1175,3 +1175,10 @@ td.col-user { font-size: 13px; color: var(--text); }
     border: 1px solid var(--border);
     border-radius: 10px;
 }
+
+/* Všechna tlačítka bez stínu — primární měla ze starého stylu záři, kvůli níž působila větší */
+.button,
+.button.primary,
+.button.success,
+.button.danger,
+.button.info { box-sizing: border-box; box-shadow: none; }
