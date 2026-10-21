@@ -9,12 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Zavření stisknutím klávesy Escape
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            closeModal();
-        }
-    });
 });
 
 // Funkce pro otevření modálního okna
@@ -72,20 +66,5 @@ function closeModal(modalId) {
     }
 }
 
-// Zavření kliknutím mimo modální okno
-// Track mousedown target so dragging from inside → outside doesn't close
-let _modalMouseDownTarget = null;
-
-document.addEventListener('mousedown', function (event) {
-    _modalMouseDownTarget = event.target;
-});
-
-document.addEventListener('mouseup', function (event) {
-    // Close only if BOTH mousedown and mouseup happened on the .modal backdrop
-    if (_modalMouseDownTarget &&
-        _modalMouseDownTarget.classList.contains('modal') &&
-        event.target.classList.contains('modal')) {
-        closeModal(event.target.id);
-    }
-    _modalMouseDownTarget = null;
-}); 
+// Modální okna se zavírají jen křížkem nebo tlačítkem uvnitř okna (Zavřít / Zrušit).
+// Kliknutí na pozadí ani klávesa Escape okno nezavře, aby se nepřišlo o rozepsané změny.
