@@ -68,7 +68,7 @@ echo        copy .env.example .env
 echo        notepad .env
 echo.
 echo  2. Over funkcnost aplikace:
-echo        venv\Scripts\python.exe -m waitress --host=127.0.0.1 --port=8080 app:app
+echo        venv\Scripts\python.exe -m waitress --host=0.0.0.0 --port=8080 wsgi:app
 echo        Otevri: http://localhost:8080/evidence_certifikatu
 echo        Zastav: Ctrl+C
 echo.
@@ -77,7 +77,7 @@ echo.
 echo  4. Nastav NSSM sluzbu (viz DEPLOY.md sekce 5.4):
 echo        nssm install CertifikatyApp
 echo        nssm set CertifikatyApp Application "%APP_DIR%venv\Scripts\python.exe"
-echo        nssm set CertifikatyApp AppParameters "-m waitress --host=127.0.0.1 --port=8080 app:app"
+echo        nssm set CertifikatyApp AppParameters "-m waitress --host=0.0.0.0 --port=8080 wsgi:app"
 echo        nssm set CertifikatyApp AppDirectory "%APP_DIR%"
 echo        nssm start CertifikatyApp
 echo.

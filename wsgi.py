@@ -27,4 +27,6 @@ def root_redirect():
     return redirect('/evidence_certifikatu')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    # debug řídí Config.DEBUG (FLASK_DEBUG v .env) — natvrdo debug=True by
+    # v produkci vystavilo werkzeug debugger (vzdálené spuštění kódu).
+    app.run(host='0.0.0.0', port=8080)

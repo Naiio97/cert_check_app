@@ -69,7 +69,7 @@ certifikaty_deploy_YYYYMMDD_<hash>.zip
 ├── app/                  kód aplikace (Python moduly)
 ├── static/               CSS, JS, obrázky
 ├── dependencies/         offline Python balíčky (.whl)
-├── app.py                vstupní bod aplikace
+├── wsgi.py               vstupní bod aplikace (waitress: wsgi:app)
 ├── config.py             konfigurace prostředí
 ├── requirements.txt      seznam závislostí
 ├── deploy.bat            první instalace
@@ -141,7 +141,7 @@ Před konfigurací IIS ověř, že aplikace startuje:
 
 ```bat
 cd C:\inetpub\certifikaty
-venv\Scripts\python.exe -m waitress --host=127.0.0.1 --port=8080 app:app
+venv\Scripts\python.exe -m waitress --host=0.0.0.0 --port=8080 wsgi:app
 ```
 
 Otevři v prohlížeči: `http://localhost:8080/evidence_certifikatu`
@@ -209,7 +209,7 @@ Aby aplikace běžela na pozadí i po restartu serveru, použij **NSSM**.
 
 3. V GUI nastav:
    - **Path:** `C:\inetpub\certifikaty\venv\Scripts\python.exe`
-   - **Arguments:** `-m waitress --host=127.0.0.1 --port=8080 app:app`
+   - **Arguments:** `-m waitress --host=0.0.0.0 --port=8080 wsgi:app`
    - **Startup directory:** `C:\inetpub\certifikaty`
    - Záložka **Environment:** `FLASK_ENV=production`
 
@@ -498,7 +498,7 @@ Spusť ručně a sleduj výstup přímo v konzoli:
 
 ```bat
 cd C:\inetpub\certifikaty
-venv\Scripts\python.exe app.py
+venv\Scripts\python.exe wsgi.py
 ```
 
 ### Chybějící tabulky v databázi
@@ -536,7 +536,7 @@ netstat -ano | findstr :8080
 
 Nejčastější příčina: půlnoční rotaci zablokoval jiný proces, který držel
 `app.log` otevřený — typicky **druhá ručně spuštěná instance aplikace**
-(`python app.py` vedle běžící služby) nebo log otevřený v programu, který
+(`python wsgi.py` vedle běžící služby) nebo log otevřený v programu, který
 soubor zamyká. Aplikace to nyní přežije (zaloguje selhání rotace do
 `service.err.log` a pokračuje v zápisu), přesto platí:
 

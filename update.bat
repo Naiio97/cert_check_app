@@ -50,7 +50,7 @@ echo   NSSM Sluzba : %NSSM_SERVICE%
 echo   Balicek     : %ZIP_PATH%
 echo.
 
-echo [1/5] Zastavuji sluzbu '%NSSM_SERVICE%' ...
+echo [1/6] Zastavuji sluzbu '%NSSM_SERVICE%' ...
 nssm stop "%NSSM_SERVICE%" confirm
 if errorlevel 1 (
     echo [CHYBA] Sluzbu se nepodarilo zastavit!
@@ -60,7 +60,7 @@ if errorlevel 1 (
 )
 echo [OK] Sluzba zastavena
 
-echo [2/5] Extrahuji %ZIP_PATH% ...
+echo [2/6] Extrahuji %ZIP_PATH% ...
 powershell -NoProfile -Command "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%APP_DIR%' -Force"
 if errorlevel 1 (
     echo [CHYBA] Extrakce selhala!
@@ -70,7 +70,7 @@ if errorlevel 1 (
 )
 echo [OK] Soubory aktualizovany
 
-echo [3/5] Instaluji zavislosti ...
+echo [3/6] Instaluji zavislosti ...
 if not exist "venv\Scripts\python.exe" (
     echo [INFO] Virtualni prostredi nenalezeno, vytvarim...
     python -m venv venv
@@ -82,7 +82,7 @@ if errorlevel 1 (
     echo [OK] Zavislosti aktualizovany
 )
 
-echo [4/5] Migrace databazi (live, uat, sit, prelive) ...
+echo [4/6] Migrace databazi (live, uat, sit, prelive) ...
 venv\Scripts\python.exe -c "from app import create_app,db; app=create_app(); ctx=app.app_context(); ctx.push(); meta=db.metadatas.get('live') if hasattr(db,'metadatas') else db.metadata; [meta.create_all(bind=db.engines[e]) or print('[OK] DB: '+e) for e in ('live','uat','sit','prelive')]; ctx.pop()"
 if errorlevel 1 (
     echo [VAROVANI] DB migrace selhala - tabulky budou overeny pri startu.
@@ -90,7 +90,19 @@ if errorlevel 1 (
     echo [OK] Databaze migrovany
 )
 
-echo [5/5] Spoustim sluzbu '%NSSM_SERVICE%' ...
+echo [5/6] Nastavuji sluzbu na waitress ...
+REM Sluzba drive poustela "python app.py" (werkzeug dev server) - waitress je
+REM produkcni server: bez debuggeru, jeden proces, funkcni rotace logu.
+nssm set "%NSSM_SERVICE%" Application "%APP_DIR%venv\Scripts\python.exe"
+nssm set "%NSSM_SERVICE%" AppParameters "-m waitress --host=0.0.0.0 --port=8080 wsgi:app"
+nssm set "%NSSM_SERVICE%" AppDirectory "%APP_DIR%"
+if errorlevel 1 (
+    echo [VAROVANI] Prenastaveni sluzby selhalo - pojede se stavajici konfiguraci.
+) else (
+    echo [OK] Sluzba nastavena: waitress, port 8080
+)
+
+echo [6/6] Spoustim sluzbu '%NSSM_SERVICE%' ...
 nssm start "%NSSM_SERVICE%"
 if errorlevel 1 (
     echo [CHYBA] Sluzbu se nepodarilo spustit!
