@@ -41,7 +41,7 @@ set "ZIPNAME=certifikaty_deploy_%BUILD_DATE%_%GIT_HASH%.zip"
 echo [INFO] Vytvarim %ZIPNAME% ...
 if exist "%ZIPNAME%" del "%ZIPNAME%"
 
-powershell -NoProfile -Command "Compress-Archive -Force -Path 'app','static','dependencies','wsgi.py','config.py','requirements.txt','deploy.bat','update.bat','package.bat','VERSION.txt','DEPLOY.md','.env.example' -DestinationPath '%ZIPNAME%'"
+powershell -NoProfile -Command "Compress-Archive -Force -Path 'app','static','iis','dependencies','wsgi.py','config.py','requirements.txt','deploy.bat','update.bat','package.bat','VERSION.txt','DEPLOY.md','.env.example' -DestinationPath '%ZIPNAME%'"
 
 if not exist "%ZIPNAME%" (
     echo [CHYBA] Nepodarilo se vytvorit ZIP!

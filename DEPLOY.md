@@ -622,14 +622,19 @@ jen se na té aplikaci zapne Windows přihlášení a IIS začne posílat jméno
 2. **Ověření uživatele na IIS aplikaci:** IIS Manager → web → aplikace `evidence_certifikatu` → *Authentication*:
    *Anonymous Authentication* → **Disable**, *Windows Authentication* → **Enable**
    (v *Providers* nahoře *Negotiate*, pod ním *NTLM*).
-3. **Povolit proměnnou** (jednou, název webu upravte; příkaz jako správce):
+3. **Předání jména uživatele aplikaci — modul `RemoteUserModule`.** Pravidlo URL Rewrite s `{LOGON_USER}`
+   v praxi nefunguje: vyhodnotí se dřív, než IIS uživatele ověří, a hlavička je pak prázdná. Proto je v repu
+   malý modul IIS (`iis\RemoteUserModule.cs`), který jméno vloží do hlavičky `X-Remote-User` až po ověření.
+   Potřebuje na serveru ASP.NET 4.x (`Install-WindowsFeature Web-Asp-Net45`) a application pool s
+   *.NET CLR v4.0* a *Integrated* pipeline (u `DefaultAppPool` výchozí). Sestavení (PowerShell jako správce,
+   ve složce aplikace; kompilátor je součást .NET Framework):
    ```
-   %windir%\system32\inetsrv\appcmd.exe set config "NAZEV_WEBU" -section:system.webServer/rewrite/allowedServerVariables /+"[name='HTTP_X_REMOTE_USER']" /commit:apphost
+   .\iisuild-module.ps1
    ```
-4. **`web.config`:** ve složce IIS aplikace (je to složka aplikace, např. `D:\Others\app\iis_apps\check_cert_app`)
-   nahradit soubor `web.config` verzí z tohoto repozitáře. Liší se jen tím, že do pravidel přibyl řádek
-   `<set name="HTTP_X_REMOTE_USER" value="{LOGON_USER}" />`, který předá jméno uživatele aplikaci. `update.bat`
-   tento soubor nepřepisuje, proto se kopíruje ručně (stačí jednou).
+   Výsledek je `bin\RemoteUserModule.dll` ve složce aplikace.
+4. **`web.config`:** ve složce IIS aplikace (např. `D:\Otherspp\iis_apps\check_cert_app`) nahradit soubor
+   verzí z repozitáře. Přidává modul `RemoteUserModule` a proxy pravidla zůstávají. `update.bat` tento soubor
+   nepřepisuje, proto se kopíruje ručně (stačí jednou).
 5. **`.env` a restart:** viz 10.1, plus `APP_URL=http://adresa-iis/evidence_certifikatu`; pak `nssm restart evidence_cert`.
 6. **Prohlížeče:** aby se přihlášení stalo bez ptaní na heslo, musí být adresa v zóně *Místní intranet*
    (běžně řeší GPO, *Site to Zone Assignment List*). Jinak Edge/Chrome jednou požádají o doménové heslo.
