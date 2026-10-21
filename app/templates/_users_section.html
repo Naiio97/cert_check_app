@@ -1,26 +1,21 @@
-{% extends "base.html" %}
-
-{% block title %}Uživatelé{% endblock %}
-
-{% block content %}
-<div class="page-header">
-    <div>
-        <h1>Uživatelé</h1>
-        <p class="page-subtitle">Kdo smí do aplikace a jaká má práva. Noví uživatelé se objeví po prvním přihlášení.</p>
+{# Správa uživatelů a rolí — součást stránky Nastavení (jen pro admina) #}
+<section class="settings-section settings-section-wide" id="uzivatele">
+    <div class="settings-info">
+        <h2 class="settings-title">Uživatelé a role</h2>
+        <p class="settings-desc">Kdo smí do aplikace a co smí dělat. Noví uživatelé se objeví po prvním otevření
+            aplikace jako „Čeká na schválení“ a přístup získají, až jim přidělíte roli.</p>
+        <div class="roles-legend">
+            <div class="legend-item"><span class="pill pill-neutral"><span class="dot"></span>Prohlížení</span>
+                <span>přehledy, historie, export</span></div>
+            <div class="legend-item"><span class="pill pill-warn"><span class="dot"></span>Úpravy</span>
+                <span>navíc přidává a upravuje certifikáty a servery, import</span></div>
+            <div class="legend-item"><span class="pill pill-ok"><span class="dot"></span>Administrátor</span>
+                <span>navíc maže, nastavení, správa uživatelů</span></div>
+        </div>
     </div>
-</div>
-
-<div class="roles-legend card">
-    <div class="legend-item"><span class="pill pill-neutral"><span class="dot"></span>Prohlížení</span>
-        <span>vidí přehledy, historii a může exportovat</span></div>
-    <div class="legend-item"><span class="pill pill-warn"><span class="dot"></span>Úpravy</span>
-        <span>navíc přidává a upravuje certifikáty a servery, importuje</span></div>
-    <div class="legend-item"><span class="pill pill-ok"><span class="dot"></span>Administrátor</span>
-        <span>navíc maže, mění nastavení a spravuje uživatele</span></div>
-</div>
-
+    <div class="settings-fields">
 <!-- Přidání uživatele předem -->
-<form method="POST" action="{{ url_for('uzivatele.pridat') }}" class="page-toolbar">
+<form method="POST" action="{{ url_for('uzivatele.pridat') }}" class="page-toolbar users-add">
     <div class="search-bar">
         <i class="fas fa-user-plus"></i>
         <input type="text" name="username" placeholder="Doménový účet, např. PMB\jnovak" required>
@@ -80,9 +75,10 @@
         </table>
     </div>
 </div>
+    </div>
+</section>
 
 {# Formuláře řádků jsou mimo tabulku (form uvnitř <tr> není platné HTML); pole se k nim vážou atributem form="uN". #}
 {% for u in users %}
 <form method="POST" action="{{ url_for('uzivatele.ulozit', id=u.id) }}" id="u{{ u.id }}"></form>
 {% endfor %}
-{% endblock %}

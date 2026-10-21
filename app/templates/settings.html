@@ -6,7 +6,7 @@
 <div class="page-header">
     <div>
         <h1>Nastavení</h1>
-        <p class="page-subtitle">Prahy upozornění, odesílání e-mailů a pravidelné reporty</p>
+        <p class="page-subtitle">Prahy upozornění, odesílání e-mailů, pravidelné reporty a uživatelé</p>
     </div>
 </div>
 
@@ -127,4 +127,8 @@
         </div>
     </form>
 </section>
+
+{% if can('admin') %}
+{% include '_users_section.html' %}
+{% endif %}
 {% endblock %}

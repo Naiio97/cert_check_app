@@ -24,7 +24,14 @@ def index():
     from app.tasks import get_report_config, ALL_REPORT_ENVS, REPORT_STAGGER_MINUTES
     report_envs, report_day, report_hour, report_minute = get_report_config(current_app)
 
+    from app.models import User
+    from app.main.uzivatele import ASSIGNABLE_ROLES
+    from sqlalchemy import case
+    users = User.query.order_by(case((User.role == 'pending', 0), else_=1), User.username).all()
+
     return render_template('settings.html',
+                         users=users,
+                         roles=ASSIGNABLE_ROLES,
                          all_report_envs=ALL_REPORT_ENVS,
                          report_stagger=REPORT_STAGGER_MINUTES,
                          settings=settings_dict,
