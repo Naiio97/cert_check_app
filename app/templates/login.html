@@ -16,9 +16,14 @@
             <span class="brand-mark"><i class="fas fa-shield-halved"></i></span>
             <span class="brand-name">Správa certifikátů</span>
         </div>
-        <h1 class="auth-title">Přihlášení</h1>
+        <h1 class="auth-title">{% if sso_user %}Přihlášení administrátora{% else %}Přihlášení{% endif %}</h1>
+        {% if sso_user %}
+        <p class="auth-text">Jste přihlášen jako <strong>{{ sso_user }}</strong>. Přihlášením záložním adminem se přepnete
+            na administrátorský účet, po odhlášení se vrátíte zpět.</p>
+        {% else %}
         <p class="auth-text">Aplikace vás přihlašuje automaticky podle účtu, pod kterým jste přihlášen do Windows.
             Pokud se to nepodařilo, otevřete aplikaci přes její firemní adresu a zkuste to znovu.</p>
+        {% endif %}
 
         {% if local_enabled %}
         <form method="POST" class="auth-form">

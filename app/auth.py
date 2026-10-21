@@ -188,6 +188,7 @@ def inject_user():
         'current_user': user,
         'can': (lambda role: bool(user and user.can(role))),
         'role_labels': ROLE_LABELS,
+        'local_admin_enabled': bool(current_app.config['LOCAL_ADMIN_PASSWORD_HASH']),
     }
 
 
@@ -213,7 +214,11 @@ def _safe_next(target):
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     cfg = current_app.config
-    if g.user is not None and g.user.active and g.user.role != 'pending':
+    # Uživatel přihlášený přes SSO se na formulář dostane jen výslovně (?local=1 z menu) —
+    # přihlášením lokálním adminem se pak přepne na admin účet, odhlášením zpět na SSO.
+    signed_in = g.user is not None and g.user.active and g.user.role != 'pending'
+    wants_local = bool(request.args.get('local')) and not (g.user is not None and g.user.is_local)
+    if signed_in and request.method == 'GET' and not wants_local:
         return redirect(_safe_next(request.args.get('next')) or url_for('main.index'))
 
     local_enabled = bool(cfg['LOCAL_ADMIN_PASSWORD_HASH'])
@@ -235,8 +240,9 @@ def login():
             current_app.logger.warning('Neúspěšné přihlášení lokálního admina z %s', ip)
             time.sleep(1)
             error = 'Neplatné jméno nebo heslo.'
+    sso_user = g.user.label if (g.user is not None and not g.user.is_local) else None
     return render_template('login.html', local_enabled=local_enabled, error=error,
-                           next=_safe_next(request.args.get('next')) or '')
+                           next=_safe_next(request.args.get('next')) or '', sso_user=sso_user)
 
 
 @bp.route('/logout', methods=['GET', 'POST'])

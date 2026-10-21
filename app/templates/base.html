@@ -84,6 +84,12 @@
                         Smazat DB
                     </button>
                     {% endif %}
+                    {% if current_user and not current_user.is_local and local_admin_enabled %}
+                    <a class="menu-item" href="{{ url_for('auth.login', local=1) }}">
+                        <i class="fas fa-user-shield"></i>
+                        Přihlásit se jako admin
+                    </a>
+                    {% endif %}
                     {% if current_user and current_user.is_local and current_user.username != 'anonymous' %}
                     <a class="menu-item" href="{{ url_for('auth.logout') }}">
                         <i class="fas fa-right-from-bracket"></i>
