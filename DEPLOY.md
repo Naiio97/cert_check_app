@@ -611,51 +611,34 @@ venv\Scripts\python.exe -c "from werkzeug.security import generate_password_hash
 
 Výsledek vložte do `.env` do jednoduchých uvozovek. Záložní admin se přihlašuje na `/evidence_certifikatu/login`.
 
-### 10.2 Nastavení IIS (jednorázově na serveru)
+### 10.2 Nastavení IIS (na existující IIS aplikaci)
 
-Aplikace dál běží jako služba `evidence_cert` (waitress, port 8080). IIS se před ni postaví jako reverzní proxy,
-která ověří uživatele.
+Aplikace běží jako služba `evidence_cert` (waitress, port 8080) a před ní už stojí IIS jako reverzní proxy
+(IIS aplikace `evidence_certifikatu` se složkou aplikace a souborem `web.config`). Nic nového se nezakládá,
+jen se na té aplikaci zapne Windows přihlášení a IIS začne posílat jméno uživatele.
 
-1. **Role a moduly IIS:** Windows Authentication (Server Manager → Add Roles → Web Server → Security),
-   [URL Rewrite](https://www.iis.net/downloads/microsoft/url-rewrite) a
-   [Application Request Routing](https://www.iis.net/downloads/microsoft/application-request-routing).
-2. **ARR:** IIS Manager → server → *Application Request Routing Cache* → *Server Proxy Settings* → zaškrtnout
-   *Enable proxy*.
-3. **Web:** vytvořit site (nebo aplikaci) na adrese, kterou budou uživatelé otevírat, a u ní
-   *Authentication*: **Anonymous Authentication = Disabled**, **Windows Authentication = Enabled**.
-4. **Povolit proměnnou:** site → *URL Rewrite* → *View Server Variables…* → *Add…* → `HTTP_X_REMOTE_USER`.
-5. **`web.config`** ve složce webu:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-  <system.webServer>
-    <rewrite>
-      <rules>
-        <rule name="CertApp" stopProcessing="true">
-          <match url="(.*)" />
-          <serverVariables>
-            <set name="HTTP_X_REMOTE_USER" value="{LOGON_USER}" />
-          </serverVariables>
-          <action type="Rewrite" url="http://127.0.0.1:8080/{R:1}" />
-        </rule>
-      </rules>
-    </rewrite>
-  </system.webServer>
-</configuration>
-```
-
-Pravidlo hlavičku vždy přepíše, takže ji klient nemůže podvrhnout.
-
-6. **Prohlížeče:** aby se přihlášení stalo bez ptaní na heslo, musí být adresa aplikace v zóně *Místní intranet*
-   (běžně řeší GPO). Jinak Edge/Chrome jednou požádají o doménové heslo.
-7. **Volitelně zpřísnit:** po ověření funkčnosti přepnout službu na `--host=127.0.0.1`, aby šlo do aplikace jen přes IIS:
-   `nssm set evidence_cert AppParameters "-m waitress --host=127.0.0.1 --port=8080 wsgi:app"`.
-   Do `APP_URL` pak patří adresa přes IIS.
+1. **Windows Authentication musí být nainstalovaná** (jednou): Server Manager → Add Roles and Features → Web Server →
+   Security → *Windows Authentication*, nebo `Install-WindowsFeature Web-Windows-Auth`.
+2. **Ověření uživatele na IIS aplikaci:** IIS Manager → web → aplikace `evidence_certifikatu` → *Authentication*:
+   *Anonymous Authentication* → **Disable**, *Windows Authentication* → **Enable**
+   (v *Providers* nahoře *Negotiate*, pod ním *NTLM*).
+3. **Povolit proměnnou** (jednou, název webu upravte; příkaz jako správce):
+   ```
+   %windir%\system32\inetsrv\appcmd.exe set config "NAZEV_WEBU" -section:system.webServer/rewrite/allowedServerVariables /+"[name='HTTP_X_REMOTE_USER']" /commit:apphost
+   ```
+4. **`web.config`:** ve složce IIS aplikace (je to složka aplikace, např. `D:\Others\app\iis_apps\check_cert_app`)
+   nahradit soubor `web.config` verzí z tohoto repozitáře. Liší se jen tím, že do pravidel přibyl řádek
+   `<set name="HTTP_X_REMOTE_USER" value="{LOGON_USER}" />`, který předá jméno uživatele aplikaci. `update.bat`
+   tento soubor nepřepisuje, proto se kopíruje ručně (stačí jednou).
+5. **`.env` a restart:** viz 10.1, plus `APP_URL=http://adresa-iis/evidence_certifikatu`; pak `nssm restart evidence_cert`.
+6. **Prohlížeče:** aby se přihlášení stalo bez ptaní na heslo, musí být adresa v zóně *Místní intranet*
+   (běžně řeší GPO, *Site to Zone Assignment List*). Jinak Edge/Chrome jednou požádají o doménové heslo.
+7. **Volitelně:** zablokovat ve firewallu příchozí port 8080 ze sítě (jen localhost), aby šlo do aplikace jen přes IIS.
+   Pozor, `update.bat` nastavuje službu na `--host=0.0.0.0`, spolehlivější je proto firewall.
 
 > Tuto část jsem nemohl vyzkoušet na vašem serveru. Po nasazení ověřte, že se v pravém horním rohu aplikace zobrazí
-> vaše jméno a role. Pokud ne, podívejte se, jestli IIS skutečně posílá hlavičku (`X-Remote-User`) a jestli aplikace
-> vidí požadavky z adresy v `AUTH_TRUSTED_PROXIES`.
+> vaše jméno. Pokud ne, podívejte se, jestli IIS skutečně posílá hlavičku (`X-Remote-User`) a jestli aplikace
+> vidí požadavky z adresy v `AUTH_TRUSTED_PROXIES` (výchozí `127.0.0.1`, IIS volá `localhost`).
 
 ### 10.3 Vývoj bez IIS
 
