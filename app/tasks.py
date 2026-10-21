@@ -239,7 +239,11 @@ def send_monthly_certificate_report(env: str):
         env_upper = env.upper()
         title_color = get_env_title_color(env_upper)
         total = len(rows_expired) + len(rows_cur) + len(rows_next)
-        stats = {'critical': len(rows_expired), 'warning': len(rows_cur), 'total': total}
+        # Kritické/varování podle zbývajících dnů (stejně jako barvy řádků v tabulce),
+        # ne podle sekce reportu: do 'critical_days' vč. vypršelých = kritické, zbytek varování.
+        all_rows = rows_expired + rows_cur + rows_next
+        critical_count = sum(1 for r in all_rows if (format_date(r["expirace"]) - today).days <= critical_days)
+        stats = {'critical': critical_count, 'warning': total - critical_count, 'total': total}
         
         html_body = wrap_email_html(
             f"[{env_upper}] Měsíční report končících certifikátů",
