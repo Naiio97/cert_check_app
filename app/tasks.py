@@ -13,7 +13,7 @@ import ssl
 import calendar
 
 from app.models import Settings, Certifikat
-from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html, get_env_title_color
+from app.email_utils import format_date, cz_month_name, render_report_email, render_notice_email
 
 def _engine(env: str):
     # Flask-SQLAlchemy 3.2+: používejte db.engines[bind]
@@ -21,6 +21,11 @@ def _engine(env: str):
         return db.engines[env]
     except Exception:
         return db.get_engine(current_app, bind=env)
+
+
+def _app_url() -> str:
+    """Odkaz do aplikace pro tlačítko v e-mailu (APP_URL v .env); prázdný = tlačítko se nezobrazí."""
+    return (current_app.config.get('APP_URL') or '').strip()
 
 
 def _send_email(subject: str, text_body: str, html_body: str, recipients=None):
@@ -140,15 +145,17 @@ def send_daily_certificate_alert(env: str):
         text_body = "\n".join(lines)
 
         # HTML
-        table_html = build_rows_html(rows, today, critical_days)
         stats = {'critical': len(critical), 'warning': len(warning), 'total': len(rows)}
         env_upper = env.upper()
-        title_color = get_env_title_color(env_upper)
-        html = wrap_email_html(
-            title=f"[{env_upper}] Končící certifikáty do {warning_days} dnů",
-            sections=[(f"Certifikáty ({len(rows)})", table_html)],
-            title_color=title_color,
-            stats=stats
+        html = render_report_email(
+            env_upper,
+            f"Končící certifikáty do {warning_days} dnů",
+            "Certifikáty, kterým brzy vyprší platnost",
+            stats,
+            [(f"Do {warning_days} dnů", list(rows))],
+            today,
+            critical_days,
+            cta_url=_app_url(),
         )
         subject = f"[{env_upper}] Končící certifikáty do {warning_days} dnů (kritické: {len(critical)})"
         _send_email(subject, text_body, html)
@@ -159,11 +166,11 @@ def send_test_email(to_email: str):
     """Odešle testovací email na zadanou adresu."""
     subject = "Test nastavení emailu"
     text_body = "Toto je testovací zpráva pro ověření funkčnosti SMTP serveru."
-    html_body = wrap_email_html(
-        title="Test nastavení emailu",
-        sections=[("Výsledek", "<p style='color: #16a34a; font-weight: bold;'>SMTP spojení je funkční.</p>")],
-        title_color="#3b82f6",
-        stats={'total': 1, 'critical': 0, 'warning': 0}
+    html_body = render_notice_email(
+        'live',
+        "Test nastavení e-mailu",
+        "Ověření odesílání z aplikace Správa certifikátů",
+        "SMTP spojení je funkční.",
     )
     _send_email(subject, text_body, html_body, recipients=[to_email])
 
@@ -184,10 +191,8 @@ def send_monthly_certificate_report(env: str):
     try:
         # 3 oddělené dotazy
         rows_expired = Certifikat.fetch_between(env, date(2000, 1, 1), yesterday)
-        rows_cur = Certifikat.fetch_between(env, cur_start, cur_end)
+        rows_cur = Certifikat.fetch_between(env, max(cur_start, today), cur_end)
         rows_next = Certifikat.fetch_between(env, next_start, next_end)
-
-        no_empty = '<p style="font-family:Arial,Helvetica,sans-serif;color:#94a3b8;padding:10px">Žádné položky</p>'
 
         # Textová verze
         lines = [f"Report končících certifikátů ({env.upper()}):", ""]
@@ -229,27 +234,27 @@ def send_monthly_certificate_report(env: str):
         critical_days = int(Settings.get('alert_days_critical', '30'))
         sections = []
         if rows_expired:
-            expired_table = build_rows_html(rows_expired, today, critical_days)
-            sections.append((f"Vypršelé ({len(rows_expired)})", expired_table))
-        cur_table = build_rows_html(rows_cur, today, critical_days) if rows_cur else no_empty
-        next_table = build_rows_html(rows_next, today, critical_days) if rows_next else no_empty
-        sections.append((cz_month_name(today), cur_table))
-        sections.append((cz_month_name(date(next_year, next_month, 1)), next_table))
-        
+            sections.append(("Vypršelé", list(rows_expired)))
+        sections.append((cz_month_name(today), list(rows_cur)))
+        sections.append((cz_month_name(date(next_year, next_month, 1)), list(rows_next)))
+
         env_upper = env.upper()
-        title_color = get_env_title_color(env_upper)
         total = len(rows_expired) + len(rows_cur) + len(rows_next)
-        # Kritické/varování podle zbývajících dnů (stejně jako barvy řádků v tabulce),
-        # ne podle sekce reportu: do 'critical_days' vč. vypršelých = kritické, zbytek varování.
-        all_rows = rows_expired + rows_cur + rows_next
+        # Kritické/varování podle zbývajících dnů (stejně jako barvy štítků v e-mailu):
+        # do 'critical_days' vč. vypršelých = kritické, zbytek varování.
+        all_rows = list(rows_expired) + list(rows_cur) + list(rows_next)
         critical_count = sum(1 for r in all_rows if (format_date(r["expirace"]) - today).days <= critical_days)
         stats = {'critical': critical_count, 'warning': total - critical_count, 'total': total}
-        
-        html_body = wrap_email_html(
-            f"[{env_upper}] Měsíční report končících certifikátů",
+
+        html_body = render_report_email(
+            env_upper,
+            "Měsíční report končících certifikátů",
+            "Certifikáty, kterým brzy vyprší platnost",
+            stats,
             sections,
-            title_color=title_color,
-            stats=stats
+            today,
+            critical_days,
+            cta_url=_app_url(),
         )
 
         sent = _send_email(f"[{env.upper()}] Měsíční report certifikátů", text_body, html_body)

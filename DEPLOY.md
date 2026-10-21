@@ -281,6 +281,8 @@ MAIL_SENDER_ADDRESS=certifikaty@firma.cz
 MAIL_SENDER_NAME=Evidence certifikátů
 MAIL_SUBJECT_PREFIX=[Certifikáty]
 MAIL_RECIPIENTS=admin@firma.cz,security@firma.cz
+# Odkaz pro tlačítko "Otevřít evidenci certifikátů" v e-mailech (prázdné = bez tlačítka)
+APP_URL=https://server.firma.cz:8080/evidence_certifikatu
 
 # ── Prostředí zahrnutá do měsíčního reportu ──────────────────────────────────
 # Možné hodnoty: live, uat, sit, prelive  (odděleno čárkou, bez mezer)

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from app.models import Settings
 from app import db
 import os
-from app.email_utils import format_date, cz_month_name, build_rows_html, wrap_email_html
+from app.email_utils import format_date, cz_month_name
 from datetime import date
 import calendar
 

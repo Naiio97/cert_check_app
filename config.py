@@ -34,6 +34,8 @@ class Config:
     MAIL_SENDER_NAME = os.environ.get('MAIL_SENDER_NAME', 'TEST a.s.')
     MAIL_SUBJECT_PREFIX = os.environ.get('MAIL_SUBJECT_PREFIX', 'Test a.s.')
     MAIL_RECIPIENTS = os.environ.get('MAIL_RECIPIENTS', 'test@test.cz')
+    # Adresa aplikace pro tlačítko "Otevřít evidenci certifikátů" v e-mailech (prázdné = bez tlačítka)
+    APP_URL = os.environ.get('APP_URL', '')
     
     # Vytvoření potřebných složek
     @staticmethod
