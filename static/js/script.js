@@ -269,18 +269,23 @@ function updateTable(data) {
                 <td class="col-check">
                     <input type="checkbox" class="cert-check" value="${cert.id}" onchange="updateBulkToolbar()">
                 </td>
-                <td>${cert.server}</td>
-                <td>${cert.cesta}</td>
-                <td>${cert.nazev}</td>
-                <td>${formatDate(cert.expirace)}</td>
-                <td class="actions">
-                    <a class="button small info" onclick="zobrazitDetail(${cert.id})" title="Detail">
+                <td class="col-server">${cert.server}</td>
+                <td class="col-path">${cert.cesta}</td>
+                <td class="col-name">${cert.nazev}</td>
+                <td class="col-expiry">
+                    <div class="expiry-cell">
+                        <span>${formatDate(cert.expirace)}</span>
+                        ${expiryPill(cert.expirace)}
+                    </div>
+                </td>
+                <td class="actions col-actions">
+                    <a class="button small icon-btn" onclick="zobrazitDetail(${cert.id})" title="Detail">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a class="button small primary" onclick="upravitCertifikat(${cert.id})" title="Upravit">
-                        <i class="fas fa-edit"></i>
+                    <a class="button small icon-btn" onclick="upravitCertifikat(${cert.id})" title="Upravit">
+                        <i class="fas fa-pen"></i>
                     </a>
-                    <a class="button small danger" onclick="smazatCertifikat(${cert.id})" title="Smazat">
+                    <a class="button small icon-btn danger" onclick="smazatCertifikat(${cert.id})" title="Smazat">
                         <i class="fas fa-trash"></i>
                     </a>
                 </td>
@@ -295,6 +300,26 @@ function updateTable(data) {
     deselectAll();
 }
 
+// Štítek expirace (shodný s makrem expiry_pill v index.html)
+function expiryPill(expirace) {
+    let d;
+    const m = String(expirace).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (m) d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    else d = new Date(expirace);
+    if (isNaN(d.getTime())) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    const days = Math.round((d - today) / 86400000);
+    if (days < 0) return '<span class="pill pill-danger">Vypršel</span>';
+    if (days <= 30) {
+        const unit = days === 1 ? 'den' : (days < 5 ? 'dny' : 'dní');
+        return `<span class="pill pill-danger">${days === 0 ? 'Dnes' : `Za ${days} ${unit}`}</span>`;
+    }
+    if (days <= 180) return `<span class="pill pill-warn">Za ${days} dní</span>`;
+    return '<span class="pill pill-ok">Platný</span>';
+}
+
 function renderPagination(p) {
     const container = document.getElementById('pagination');
     if (!container) return;
@@ -304,11 +329,11 @@ function renderPagination(p) {
         return;
     }
 
-    let html = '';
+    let html = `<span class="pagination-info">Strana ${p.page} z ${p.pages}</span><div class="pagination-pages">`;
 
     // Prev
     if (p.has_prev) {
-        html += `<a href="#" class="page-link" onclick="loadPage(${p.prev_num}); return false;"><i class="fas fa-chevron-left"></i> Předchozí</a>`;
+        html += `<a href="#" class="page-link" onclick="loadPage(${p.prev_num}); return false;">Předchozí</a>`;
     }
 
     // Numbers
@@ -340,8 +365,10 @@ function renderPagination(p) {
 
     // Next
     if (p.has_next) {
-        html += `<a href="#" class="page-link" onclick="loadPage(${p.next_num}); return false;">Další <i class="fas fa-chevron-right"></i></a>`;
+        html += `<a href="#" class="page-link" onclick="loadPage(${p.next_num}); return false;">Další</a>`;
     }
+
+    html += '</div>';
 
     container.innerHTML = html;
 }

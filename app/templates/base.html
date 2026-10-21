@@ -8,62 +8,63 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4.5">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/flatpickr.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/redesign.css') }}?v=2">
 </head>
 
 <body class="env-{{ current_env }}">
+    <div class="env-stripe"></div>
     <header class="app-header">
-        <div class="brand">
-            <i class="fas fa-certificate"></i>
-            <span>Správa certifikátů</span>
-            <span class="env-badge env-{{ current_env }}" title="Aktivní prostředí">
-                {{ current_env|upper }}
-            </span>
+        <div class="app-header-left">
+            <div class="brand">
+                <span class="brand-mark"><i class="fas fa-shield-halved"></i></span>
+                <span class="brand-name">Správa certifikátů</span>
+                <span class="env-badge env-{{ current_env }}" title="Aktivní prostředí">
+                    <span class="env-dot"></span>{{ current_env|upper }}
+                </span>
+            </div>
+            <nav class="app-nav">
+                <a href="{{ url_for('main.index') }}" class="{% if request.endpoint in ['main.index', 'certificates.pridat_certifikat'] %}active{% endif %}">
+                    <i class="fas fa-table-columns"></i>
+                    Přehled
+                </a>
+                <a href="{{ url_for('dashboard.index') }}"
+                    class="{% if request.blueprint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Končící certifikáty
+                    {% if expiring_count %}<span class="nav-badge">{{ expiring_count }}</span>{% endif %}
+                </a>
+                <a href="{{ url_for('servers.seznam_serveru') }}"
+                    class="{% if request.blueprint == 'servers' %}active{% endif %}">
+                    <i class="fas fa-server"></i>
+                    Servery
+                </a>
+                <a href="{{ url_for('historie.index') }}" class="{% if request.blueprint == 'historie' %}active{% endif %}">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    Historie
+                </a>
+                <a href="{{ url_for('settings.index') }}" class="{% if request.blueprint == 'settings' %}active{% endif %}">
+                    <i class="fas fa-gear"></i>
+                    Nastavení
+                </a>
+            </nav>
         </div>
-        <nav class="app-nav">
-            <a href="{{ url_for('main.index') }}" class="{% if request.endpoint in ['main.index'] %}active{% endif %}">
-                <i class="fas fa-table"></i>
-                Přehled
-            </a>
-            <a href="{{ url_for('dashboard.index') }}"
-                class="{% if request.blueprint == 'dashboard' %}active{% endif %}">
-                <i class="fas fa-chart-bar"></i>
-                Končící certifikáty
-            </a>
-            <a href="{{ url_for('servers.seznam_serveru') }}"
-                class="{% if request.blueprint == 'servers' %}active{% endif %}">
-                <i class="fas fa-server"></i>
-                Servery
-            </a>
-            <a href="{{ url_for('historie.index') }}" class="{% if request.blueprint == 'historie' %}active{% endif %}">
-                <i class="fas fa-history"></i>
-                Historie
-            </a>
-            <a href="{{ url_for('certificates.pridat_certifikat') }}" class="link-cta">
-                <i class="fas fa-plus"></i>
-                Nový certifikát
-            </a>
-            <a href="{{ url_for('certificates.export_excel') }}">
-                <i class="fas fa-file-export"></i>
-                Export
-            </a>
-            <a href="{{ url_for('settings.index') }}" class="{% if request.blueprint == 'settings' %}active{% endif %}">
-                <i class="fas fa-cog"></i>
-                Nastavení
-            </a>
+        <div class="app-header-right">
             <div class="env-switch">
-                <button class="env-btn" data-env="live">Live</button>
-                <button class="env-btn" data-env="prelive">Prelive</button>
-                <button class="env-btn" data-env="uat">UAT</button>
-                <button class="env-btn" data-env="sit">SIT</button>
+                <button class="env-btn" data-env="live"><span class="env-dot"></span>LIVE</button>
+                <button class="env-btn" data-env="prelive"><span class="env-dot"></span>PRELIVE</button>
+                <button class="env-btn" data-env="uat"><span class="env-dot"></span>UAT</button>
+                <button class="env-btn" data-env="sit"><span class="env-dot"></span>SIT</button>
             </div>
 
             <div class="menu-more">
-                <button class="menu-button" aria-haspopup="true" aria-expanded="false">
-                    <i class="fas fa-ellipsis-h"></i>
+                <button class="menu-button" aria-haspopup="true" aria-expanded="false" title="Další akce">
+                    <i class="fas fa-ellipsis"></i>
                 </button>
                 <div class="menu-dropdown">
+                    <a class="menu-item" href="{{ url_for('certificates.export_excel') }}">
+                        <i class="fas fa-file-export"></i>
+                        Export do Excelu
+                    </a>
                     <button class="menu-item" onclick="sendReportNow()">
                         <i class="fas fa-paper-plane"></i>
                         Poslat report teď
@@ -74,7 +75,7 @@
                     </button>
                 </div>
             </div>
-        </nav>
+        </div>
     </header>
 
     <main class="app-main">

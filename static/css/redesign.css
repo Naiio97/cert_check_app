@@ -1,0 +1,663 @@
+/* ═══════════════════════════════════════════════════════════════
+   REDESIGN — plochý styl podle návrhu (Pencil). Načítá se PO style.css
+   a přepisuje ho: tokeny, horní lišta, tlačítka, tabulky, formuláře.
+   Nepřevedené stránky díky přepsaným proměnným dostanou alespoň
+   plochý základ; starý style.css se odstraní po převodu všech obrazovek.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Písmo Inter (lokálně — server nemusí mít přístup na internet) ─── */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ─── Tokeny ─── */
+:root {
+    --bg: #F6F7F9;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-soft: #F0F1F5;
+    --text: #111827;
+    --muted: #6B7280;
+    --subtle: #9CA3AF;
+    --primary: #4F46E5;
+    --primary-soft: #EEF0FF;
+    --danger: #DC2626;
+
+    /* Přepis proměnných starého style.css → plochý vzhled bez průhlednosti */
+    --primary-light: #6366F1;
+    --primary-dark: #4338CA;
+    --primary-glow: rgba(79, 70, 229, 0.18);
+    --text-secondary: var(--muted);
+    --text-muted: var(--subtle);
+    --glass-bg: var(--surface);
+    --glass-bg-strong: var(--surface);
+    --glass-border: var(--border);
+    --glass-shadow: none;
+    --glass-blur: none;
+    --radius: 12px;
+    --radius-sm: 10px;
+    --radius-xs: 8px;
+    --env-bg: var(--bg);
+
+    /* Prostředí — výchozí LIVE */
+    --env: #DC2626;
+    --env-soft: #FEE2E2;
+    --env-ink: #B91C1C;
+    --env-on: #FFFFFF;
+    --env-accent: var(--env);
+}
+
+body.env-prelive { --env: #DB2777; --env-soft: #FCE7F3; --env-ink: #BE185D; --env-on: #FFFFFF; }
+body.env-uat     { --env: #15803D; --env-soft: #DCFCE7; --env-ink: #166534; --env-on: #FFFFFF; }
+body.env-sit     { --env: #EAB308; --env-soft: #FEF3C7; --env-ink: #A16207; --env-on: #422006; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+}
+
+body::before { display: none; }
+
+/* ─── Barevný pruh prostředí a horní lišta ─── */
+.env-stripe {
+    height: 4px;
+    background: var(--env);
+}
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 64px;
+    padding: 0 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.app-header-left,
+.app-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.app-header-left { gap: 40px; min-width: 0; }
+.app-header-right { gap: 10px; flex-shrink: 0; }
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-mark i,
+.brand i.fas { color: #fff; font-size: 16px; }
+
+.app-header .env-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--env-soft);
+    color: var(--env-ink);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    border: none;
+    box-shadow: none;
+    text-transform: uppercase;
+}
+
+.env-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.app-header .env-badge .env-dot { background: var(--env); }
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.app-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.app-nav a i { font-size: 15px; width: 18px; text-align: center; }
+
+.app-nav a:hover { background: var(--bg); color: var(--text); }
+
+.app-nav a.active {
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.nav-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #FEF3C7;
+    color: #B45309;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Přepínač prostředí */
+.env-switch {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    margin: 0;
+    background: #ECEEF3;
+    border-radius: 10px;
+}
+
+.env-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.env-btn .env-dot { background: var(--subtle); }
+.env-btn[data-env="live"] .env-dot    { background: #DC2626; }
+.env-btn[data-env="prelive"] .env-dot { background: #DB2777; }
+.env-btn[data-env="uat"] .env-dot     { background: #15803D; }
+.env-btn[data-env="sit"] .env-dot     { background: #EAB308; }
+
+.env-btn:hover:not(.active) { background: rgba(255, 255, 255, 0.7); color: var(--text); }
+
+.env-btn.active { box-shadow: none; font-weight: 700; }
+.env-btn.active .env-dot { background: currentColor; }
+.env-btn[data-env="live"].active    { background: #DC2626; color: #fff; }
+.env-btn[data-env="prelive"].active { background: #DB2777; color: #fff; }
+.env-btn[data-env="uat"].active     { background: #15803D; color: #fff; }
+.env-btn[data-env="sit"].active     { background: #EAB308; color: #422006; }
+
+/* Menu „více“ */
+.menu-more { position: relative; }
+
+.menu-button {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.menu-button:hover { background: var(--bg); color: var(--text); }
+
+.menu-dropdown {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.1);
+    min-width: 210px;
+    padding: 6px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.menu-item i { width: 16px; color: var(--muted); }
+.menu-item:hover { background: var(--bg); }
+.menu-item.danger, .menu-item.danger i { color: var(--danger); }
+.menu-item.danger:hover { background: #FEF2F2; }
+
+/* ─── Rozvržení stránky ─── */
+.app-main { padding: 32px 40px 48px; }
+
+.container {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text);
+    margin: 0;
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.page-subtitle {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+/* ─── Tlačítka ─── */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.button:hover { transform: none; background: var(--bg); box-shadow: none; }
+.button i { font-size: 14px; color: var(--muted); }
+
+.button.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.button.primary:hover { background: #4338CA; border-color: #4338CA; box-shadow: none; }
+.button.primary i { color: #fff; }
+
+.button.info,
+.button.secondary,
+.button.success { background: var(--surface); color: var(--text); border-color: var(--border); }
+
+.button.info:hover,
+.button.secondary:hover,
+.button.success:hover { background: var(--bg); }
+
+.button.danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+.button.danger:hover { background: #B91C1C; border-color: #B91C1C; }
+.button.danger i { color: #fff; }
+
+.button.small { padding: 6px 12px; font-size: 13px; }
+
+.button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Ikonová tlačítka v řádcích tabulky */
+.button.icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.button.small.icon-btn,
+.button.small.icon-btn.danger {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted);
+}
+
+.button.icon-btn i { font-size: 14px; color: inherit; }
+.button.small.icon-btn:hover { background: var(--primary-soft); color: var(--primary); }
+.button.small.icon-btn.danger:hover { background: #FEF2F2; color: var(--danger); }
+
+/* ─── Panel nástrojů nad tabulkou (hledání + akce) ─── */
+.page-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.page-toolbar .button { height: 42px; }
+
+.search-bar {
+    flex: 1;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-bar:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.search-bar i { color: var(--subtle); font-size: 14px; }
+
+.search-bar input {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.search-bar input::placeholder { color: var(--subtle); }
+
+/* ─── Karta s tabulkou ─── */
+.table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.table-card .nav-list {
+    display: flex;
+    gap: 28px;
+    margin: 0;
+    padding: 0 20px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-soft);
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+
+.table-card .nav-item {
+    flex: none;
+    min-width: 0;
+    padding: 14px 0;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.table-card .nav-item:hover { background: none; color: var(--text); }
+
+.table-card .nav-item.active {
+    background: none;
+    box-shadow: none;
+    color: var(--primary);
+    font-weight: 600;
+    border-bottom-color: var(--primary);
+}
+
+.table-card .table-container {
+    margin: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: auto;
+}
+
+/* ─── Tabulky ─── */
+table { width: 100%; border-collapse: collapse; }
+
+th {
+    padding: 12px 16px;
+    background: #F9FAFB;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap;
+}
+
+td {
+    padding: 0 16px;
+    height: 60px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+    color: var(--text);
+    vertical-align: middle;
+}
+
+th:first-child, td:first-child { padding-left: 20px; }
+th:last-child, td:last-child { padding-right: 20px; text-align: left; width: auto; }
+
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: #FAFAFC; }
+tbody tr:last-child td { border-bottom: none; }
+
+.col-check { width: 18px; }
+.col-server { width: 150px; }
+.col-expiry { width: 250px; }
+.col-actions { width: 128px; }
+
+td.col-server { font-weight: 500; }
+td.col-path { color: var(--muted); font-size: 12px; word-break: break-word; }
+td.col-name { font-weight: 500; word-break: break-word; }
+
+td.actions { white-space: nowrap; text-align: left; }
+td.actions .button { margin: 0; }
+
+/* Stavy řádků — barvu nese štítek, řádek zůstává čistý */
+tbody tr.cert-expired,
+tbody tr.cert-warning,
+tbody tr.cert-ending-year {
+    background: transparent !important;
+    border-left: none;
+}
+
+tbody tr.cert-expired:hover,
+tbody tr.cert-warning:hover,
+tbody tr.cert-ending-year:hover { background: #FAFAFC !important; }
+
+tbody tr.cert-expired td,
+tbody tr.cert-warning td { color: var(--text); }
+tbody tr.cert-expired td.col-path,
+tbody tr.cert-warning td.col-path { color: var(--muted); }
+
+.expiry-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.pill-ok     { background: #DCFCE7; color: #15803D; }
+.pill-warn   { background: #FEF3C7; color: #B45309; }
+.pill-danger { background: #FEE2E2; color: #B91C1C; }
+
+/* Zaškrtávací políčka */
+input[type="checkbox"].cert-check,
+input[type="checkbox"]#selectAll {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+/* ─── Stránkování ─── */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.pagination:empty { display: none; }
+
+.pagination-info { font-size: 13px; color: var(--muted); }
+
+.pagination-pages { display: flex; align-items: center; gap: 4px; }
+
+.page-link {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    background: none;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.page-link:hover { background: var(--bg); color: var(--text); }
+.page-link.active { background: var(--primary); color: #fff; font-weight: 600; }
+.page-link.active:hover { background: var(--primary); color: #fff; }
+.page-ellipsis { color: var(--subtle); padding: 0 4px; }
+
+/* ─── Plovoucí lišta hromadných akcí ─── */
+.bulk-toolbar {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(17, 24, 39, 0.14);
+}
+
+.bulk-count { color: var(--primary); font-weight: 600; }
+
+/* ─── Import z Excelu ─── */
+.import-form .inline-form { padding: 12px 16px; margin-bottom: 24px; }
+
+/* ─── Responzivita ─── */
+@media (max-width: 1100px) {
+    .app-header { height: auto; padding: 10px 20px; flex-wrap: wrap; }
+    .app-header-left { gap: 16px; flex-wrap: wrap; }
+    .app-nav { flex-wrap: wrap; }
+    .app-main { padding: 24px 20px 40px; }
+    .page-toolbar { flex-wrap: wrap; }
+}

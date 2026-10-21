@@ -76,6 +76,16 @@ def create_app(config_class=Config):
     from app.main.settings import bp as settings_bp
     app.register_blueprint(settings_bp, url_prefix='/evidence_certifikatu')
 
+    def _expiring_count(env):
+        # Počet certifikátů, které už vypršely nebo vyprší do 'alert_days_warning' dnů —
+        # číslo ve štítku u položky "Končící certifikáty" v horní liště.
+        try:
+            from app.models import Certifikat, Settings
+            warning_days = int(Settings.get('alert_days_warning', '60'))
+            return len(Certifikat.fetch_expiring(env, days=warning_days))
+        except Exception:
+            return 0
+
     @app.context_processor
     def inject_env():
         env = getattr(g, 'db_bind', 'live')
@@ -85,6 +95,7 @@ def create_app(config_class=Config):
             'is_uat':     env == 'uat',
             'is_sit':     env == 'sit',
             'is_prelive': env == 'prelive',
+            'expiring_count': _expiring_count(env),
         }
 
     @app.before_request

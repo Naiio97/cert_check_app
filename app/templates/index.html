@@ -1,32 +1,38 @@
 {% extends "base.html" %}
 
+{% macro expiry_pill(days) %}
+{% if days < 0 %}<span class="pill pill-danger">Vypršel</span>
+{% elif days <= 30 %}<span class="pill pill-danger">{{ 'Dnes' if days == 0 else 'Za %d %s' % (days, 'den' if days == 1 else ('dny' if days < 5 else 'dní')) }}</span>
+{% elif days <= 180 %}<span class="pill pill-warn">Za {{ days }} dní</span>
+{% else %}<span class="pill pill-ok">Platný</span>{% endif %}
+{% endmacro %}
 {% block content %}
-<h1>Přehled certifikátů</h1>
-
-<!-- Toolbar s tlačítky -->
-<div class="toolbar">
-    <div class="button-group">
-        <a href="{{ url_for('certificates.pridat_certifikat') }}" class="button primary">
-            <i class="fas fa-plus"></i>
-            Přidat certifikát
-        </a>
-        <button onclick="toggleImport()" class="button info">
-            <i class="fas fa-file-import"></i>
-            Import z Excelu
-        </button>
-        <a href="{{ url_for('certificates.export_excel') }}" class="button success">
-            <i class="fas fa-file-export"></i>
-            Export do Excelu
-        </a>
-        <a href="{{ url_for('dashboard.index') }}" class="button info">
-            <i class="fas fa-chart-bar"></i>
-            Končící certifikáty
-        </a>
-        <a href="{{ url_for('servers.seznam_serveru') }}" class="button secondary">
-            <i class="fas fa-server"></i>
-            Správa serverů
-        </a>
+<div class="page-header">
+    <div>
+        <h1>Přehled certifikátů</h1>
+        <p class="page-subtitle">Evidence certifikátů napříč servery a prostředími</p>
     </div>
+</div>
+
+<!-- Hledání a akce -->
+<div class="page-toolbar">
+    <div class="search-bar">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Hledat certifikát (název, server, cesta…)"
+            oninput="filterTable(this.value)">
+    </div>
+    <button onclick="toggleImport()" class="button">
+        <i class="fas fa-file-arrow-up"></i>
+        Import z Excelu
+    </button>
+    <a href="{{ url_for('certificates.export_excel') }}" class="button">
+        <i class="fas fa-file-arrow-down"></i>
+        Export do Excelu
+    </a>
+    <a href="{{ url_for('certificates.pridat_certifikat') }}" class="button primary">
+        <i class="fas fa-plus"></i>
+        Přidat certifikát
+    </a>
 </div>
 
 <!-- Informační hláška -->
@@ -46,87 +52,86 @@
     </form>
 </div>
 
-<!-- Navigace serverů -->
-<div class="nav-list">
-    {% for server in servery %}
-    <a href="#" data-server="{{ server }}" class="nav-item {% if server == aktivni_server %}active{% endif %}">
-        {{ server }}
-    </a>
-    {% endfor %}
-</div>
-<!-- Search bar -->
-<div class="search-bar">
-    <i class="fas fa-search"></i>
-    <input type="text" id="searchInput" placeholder="Hledat certifikát (název, server, cesta…)"
-        oninput="filterTable(this.value)">
-</div>
+<div class="table-card">
+    <!-- Navigace serverů -->
+    <div class="nav-list">
+        {% for server in servery %}
+        <a href="#" data-server="{{ server }}" class="nav-item {% if server == aktivni_server %}active{% endif %}">
+            {{ server }}
+        </a>
+        {% endfor %}
+    </div>
 
-<!-- Tabulka certifikátů -->
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th class="col-check">
-                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Vybrat vše">
-                </th>
-                <th>Server</th>
-                <th>Cesta</th>
-                <th>Název certifikátu</th>
-                <th>Expirace</th>
-                <th>Akce</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cert in certifikaty %}
-            <tr class="{{ cert|get_expiry_class }}">
-                <td class="col-check">
-                    <input type="checkbox" class="cert-check" value="{{ cert.id }}" onchange="updateBulkToolbar()">
-                </td>
-                <td>{{ cert.server }}</td>
-                <td>{{ cert.cesta }}</td>
-                <td>{{ cert.nazev }}</td>
-                <td>{{ cert.expirace.strftime('%d.%m.%Y') }}</td>
-                <td class="actions">
-                    <a class="button small info" onclick="zobrazitDetail('{{ cert.id }}')" title="Detail">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                    <a class="button small primary" onclick="upravitCertifikat('{{ cert.id }}')" title="Upravit">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    <a class="button small danger" onclick="smazatCertifikat('{{ cert.id }}')" title="Smazat">
-                        <i class="fas fa-trash"></i>
-                    </a>
-                </td>
-            </tr>
+    <!-- Tabulka certifikátů -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-check">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Vybrat vše">
+                    </th>
+                    <th class="col-server">Server</th>
+                    <th>Cesta</th>
+                    <th>Název certifikátu</th>
+                    <th class="col-expiry">Expirace</th>
+                    <th class="col-actions">Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cert in certifikaty %}
+                <tr class="{{ cert|get_expiry_class }}">
+                    <td class="col-check">
+                        <input type="checkbox" class="cert-check" value="{{ cert.id }}" onchange="updateBulkToolbar()">
+                    </td>
+                    <td class="col-server">{{ cert.server }}</td>
+                    <td class="col-path">{{ cert.cesta }}</td>
+                    <td class="col-name">{{ cert.nazev }}</td>
+                    <td class="col-expiry">
+                        <div class="expiry-cell">
+                            <span>{{ cert.expirace.strftime('%d.%m.%Y') }}</span>
+                            {{ expiry_pill(cert.expirace|days_until_expiry) }}
+                        </div>
+                    </td>
+                    <td class="actions col-actions">
+                        <a class="button small icon-btn" onclick="zobrazitDetail('{{ cert.id }}')" title="Detail">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a class="button small icon-btn" onclick="upravitCertifikat('{{ cert.id }}')" title="Upravit">
+                            <i class="fas fa-pen"></i>
+                        </a>
+                        <a class="button small icon-btn danger" onclick="smazatCertifikat('{{ cert.id }}')" title="Smazat">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="pagination">
+        {% if pagination and pagination.pages > 1 %}
+        <span class="pagination-info">Strana {{ pagination.page }} z {{ pagination.pages }}</span>
+        <div class="pagination-pages">
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.prev_num }}" class="page-link" data-page="{{ pagination.prev_num }}">Předchozí</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <a href="?page={{ p }}" class="page-link {% if p == pagination.page %}active{% endif %}" data-page="{{ p }}">{{ p }}</a>
+            {% else %}
+            <span class="page-ellipsis">…</span>
+            {% endif %}
             {% endfor %}
-        </tbody>
-    </table>
-</div>
 
-<!-- Pagination -->
-<div id="pagination" class="pagination">
-    {% if pagination and pagination.pages > 1 %}
-    {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}" class="page-link" data-page="{{ pagination.prev_num }}">
-        <i class="fas fa-chevron-left"></i> Předchozí
-    </a>
-    {% endif %}
-
-    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-    {% if p %}
-    <a href="?page={{ p }}" class="page-link {% if p == pagination.page %}active{% endif %}" data-page="{{ p }}">{{ p
-        }}</a>
-    {% else %}
-    <span class="page-ellipsis">…</span>
-    {% endif %}
-    {% endfor %}
-
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}" class="page-link" data-page="{{ pagination.next_num }}">
-        Další <i class="fas fa-chevron-right"></i>
-    </a>
-    {% endif %}
-    {% endif %}
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.next_num }}" class="page-link" data-page="{{ pagination.next_num }}">Další</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Floating bulk toolbar -->
