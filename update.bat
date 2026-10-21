@@ -1,5 +1,15 @@
 @echo off
 chcp 65001 >nul
+
+REM Skript se pri aktualizaci prepise sam (rozbalenim balicku). cmd cte batch soubor postupne
+REM po bajtech, takze zmena souboru za behu rozbije dalsi radky ("... is not recognized").
+REM Proto se skutecna aktualizace pousti z docasne kopie.
+if not defined UPDATE_FROM_TEMP (
+    set "UPDATE_APP_DIR=%~dp0"
+    set "UPDATE_FROM_TEMP=1"
+    copy /y "%~f0" "%TEMP%\cert_update_run.bat" >nul
+    call "%TEMP%\cert_update_run.bat" %* & exit /b
+)
 echo ============================================
 echo   Update - Evidence Certifikatu
 echo ============================================
@@ -10,7 +20,8 @@ echo Pouziti: update.bat [NazevNSSMSluzby] [balicek.zip]
 echo Priklad: update.bat CertifikatyApp certifikaty_deploy_20260415.zip
 echo.
 
-set "APP_DIR=%~dp0"
+set "APP_DIR=%UPDATE_APP_DIR%"
+if not defined APP_DIR set "APP_DIR=%~dp0"
 cd /d "%APP_DIR%"
 
 set "NSSM_SERVICE=%~1"
