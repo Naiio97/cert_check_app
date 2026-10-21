@@ -1,40 +1,46 @@
 {% extends "modal_base.html" %}
+{% from "_macros.html" import days_pill %}
 
 {% block modal_title %}Detail certifikátu{% endblock %}
 
 {% block modal_content %}
 <div class="detail-content">
     <div class="detail-row">
-        <label>Server:</label>
+        <label>Server</label>
         <span>{{ certifikat.server }}</span>
     </div>
     <div class="detail-row">
-        <label>Cesta:</label>
+        <label>Cesta</label>
         <span>{{ certifikat.cesta }}</span>
     </div>
     <div class="detail-row">
-        <label>Název:</label>
+        <label>Název</label>
         <span>{{ certifikat.nazev }}</span>
     </div>
     <div class="detail-row">
-        <label>Expirace:</label>
+        <label>Expirace</label>
         <span>{{ certifikat.expirace.strftime('%d.%m.%Y') }}</span>
     </div>
     <div class="detail-row">
-        <label>Zbývá dnů:</label>
-        <span>
-            <span class="{{ certifikat|get_expiry_class }}">{{ certifikat.expirace|days_until_expiry }}</span>
-        </span>
+        <label>Zbývá dnů</label>
+        <span>{{ days_pill(certifikat.expirace|days_until_expiry) }}</span>
     </div>
     {% if certifikat.poznamka %}
     <div class="detail-row">
-        <label>Poznámka:</label>
+        <label>Poznámka</label>
         <span>{{ certifikat.poznamka }}</span>
     </div>
     {% endif %}
     <div class="detail-row">
-        <label>Vytvořeno:</label>
+        <label>Vytvořeno</label>
         <span>{{ certifikat.vytvoreno.strftime('%d.%m.%Y %H:%M:%S') }}</span>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block modal_footer_buttons %}
+<button type="button" class="button" onclick="closeModal()">Zavřít</button>
+<button type="button" class="button primary" onclick="upravitCertifikat('{{ certifikat.id }}')">
+    <i class="fas fa-pen"></i> Upravit
+</button>
+{% endblock %}

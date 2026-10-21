@@ -1,16 +1,16 @@
 <div class="modal-header">
     <h2>{% block modal_title %}Modální okno{% endblock %}</h2>
-    <button class="close-button" onclick="closeModal()">&times;</button>
+    <button type="button" class="close-button" onclick="closeModal()" aria-label="Zavřít">
+        <i class="fas fa-xmark"></i>
+    </button>
 </div>
 <div class="modal-body">
     {% block modal_content %}
     <!-- Obsah bude vložen zde -->
     {% endblock %}
 </div>
-{% block modal_footer %}
 <div class="modal-footer">
     {% block modal_footer_buttons %}
-    <button class="button secondary" onclick="closeModal()">Zavřít</button>
+    <button type="button" class="button" onclick="closeModal()">Zavřít</button>
     {% endblock %}
 </div>
-{% endblock %}

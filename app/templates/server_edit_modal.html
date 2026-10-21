@@ -1,27 +1,24 @@
 {% extends "modal_base.html" %}
 
-{% block modal_title %}{% if server %}Upravit server{% else %}Přidat nový server{% endif %}{% endblock %}
+{% block modal_title %}{% if server %}Upravit server{% else %}Přidat server{% endif %}{% endblock %}
 
 {% block modal_content %}
-<form id="serverForm" method="POST" action="{% if server %}/evidence_certifikatu/servery/upravit/{{ server.id }}{% else %}/evidence_certifikatu/servery/pridat{% endif %}">
-    <div class="form-group">
-        <label for="nazev">Název serveru:</label>
+<form id="serverForm" class="modal-form" method="POST" action="{% if server %}/evidence_certifikatu/servery/upravit/{{ server.id }}{% else %}/evidence_certifikatu/servery/pridat{% endif %}">
+    <div class="field">
+        <label for="nazev">Název serveru</label>
         <input type="text" name="nazev" id="nazev" value="{{ server.nazev if server else '' }}" required>
     </div>
-    
-    <div class="form-group">
-        <label for="popis">Popis:</label>
-        <textarea name="popis" id="popis" rows="3">{{ server.popis if server else '' }}</textarea>
-    </div>
-    
-    <div class="form-actions">
-        <button type="submit" class="button primary">
-            {% if server %}Uložit změny{% else %}Přidat server{% endif %}
-        </button>
+
+    <div class="field">
+        <label for="popis">Popis</label>
+        <textarea name="popis" id="popis" rows="3" placeholder="Popis serveru">{{ server.popis if server and server.popis else '' }}</textarea>
     </div>
 </form>
 {% endblock %}
 
 {% block modal_footer_buttons %}
-<!-- Prázdné, tlačítko je nyní součástí formuláře -->
-{% endblock %} 
+<button type="button" class="button" onclick="closeModal()">Zrušit</button>
+<button type="submit" form="serverForm" class="button primary">
+    {% if server %}Uložit změny{% else %}<i class="fas fa-plus"></i> Přidat server{% endif %}
+</button>
+{% endblock %}

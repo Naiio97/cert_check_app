@@ -1,0 +1,13 @@
+{# Štítek expirace v tabulce přehledu: Vypršel / Za N dní / Platný (shodný s expiryPill v script.js) #}
+{% macro expiry_pill(days) %}
+{% if days < 0 %}<span class="pill pill-danger">Vypršel</span>
+{% elif days <= 30 %}<span class="pill pill-danger">{{ 'Dnes' if days == 0 else 'Za %d %s' % (days, 'den' if days == 1 else ('dny' if days < 5 else 'dní')) }}</span>
+{% elif days <= 180 %}<span class="pill pill-warn">Za {{ days }} dní</span>
+{% else %}<span class="pill pill-ok">Platný</span>{% endif %}
+{% endmacro %}
+
+{# Štítek se zbývajícími dny (detail certifikátu) #}
+{% macro days_pill(days) %}
+{% if days < 0 %}{% set tone = 'danger' %}{% elif days <= 30 %}{% set tone = 'danger' %}{% elif days <= 180 %}{% set tone = 'warn' %}{% else %}{% set tone = 'ok' %}{% endif %}
+<span class="pill pill-{{ tone }}"><span class="dot"></span>{{ '−%d' % (-days) if days < 0 else days }} dní</span>
+{% endmacro %}

@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 
-{% macro expiry_pill(days) %}
-{% if days < 0 %}<span class="pill pill-danger">Vypršel</span>
-{% elif days <= 30 %}<span class="pill pill-danger">{{ 'Dnes' if days == 0 else 'Za %d %s' % (days, 'den' if days == 1 else ('dny' if days < 5 else 'dní')) }}</span>
-{% elif days <= 180 %}<span class="pill pill-warn">Za {{ days }} dní</span>
-{% else %}<span class="pill pill-ok">Platný</span>{% endif %}
-{% endmacro %}
+{% from "_macros.html" import expiry_pill %}
 {% block content %}
 <div class="page-header">
     <div>

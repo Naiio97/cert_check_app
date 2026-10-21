@@ -1,53 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="header">
+<div class="page-header">
+    <div>
         <h1>Správa serverů</h1>
-        <div class="toolbar" style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button onclick="pridatServer()" class="button primary">
-                <i class="fas fa-plus"></i>
-                Přidat server
-            </button>
-            <a href="{{ url_for('main.index') }}" class="button info">
-                <i class="fas fa-arrow-left"></i>
-                Zpět na přehled
-            </a>
-        </div>
+        <p class="page-subtitle">Servery, na kterých evidujeme certifikáty</p>
     </div>
+    <div class="page-actions">
+        <a href="{{ url_for('main.index') }}" class="button">
+            <i class="fas fa-arrow-left"></i>
+            Zpět na přehled
+        </a>
+        <button onclick="pridatServer()" class="button primary">
+            <i class="fas fa-plus"></i>
+            Přidat server
+        </button>
+    </div>
+</div>
 
-    <!-- Seznam serverů -->
+<!-- Seznam serverů -->
+<div class="table-card">
     <div class="table-container">
-        <table>
+        <table class="servers-table">
             <thead>
                 <tr>
                     <th>Název serveru</th>
                     <th>Popis</th>
-                    <th>Počet certifikátů</th>
-                    <th>Vytvořeno</th>
-                    <th>Akce</th>
+                    <th class="col-count">Počet certifikátů</th>
+                    <th class="col-created">Vytvořeno</th>
+                    <th class="col-actions">Akce</th>
                 </tr>
             </thead>
             <tbody>
                 {% for server in servery %}
                 <tr>
-                    <td>{{ server.nazev }}</td>
-                    <td>{{ server.popis or 'Bez popisu' }}</td>
-                    <td>{{ server.pocet_certifikatu }}</td>
-                    <td>{{ server.vytvoreno.strftime('%d.%m.%Y') }}</td>
-                    <td class="actions">
-                        <a class="button small info" onclick="zobrazitServerDetail('{{ server.id }}')" title="Detail">
+                    <td class="col-server-name">{{ server.nazev }}</td>
+                    <td class="col-desc">{{ server.popis or 'Bez popisu' }}</td>
+                    <td class="col-count">{{ server.pocet_certifikatu }}</td>
+                    <td class="col-created">{{ server.vytvoreno.strftime('%d.%m.%Y') }}</td>
+                    <td class="actions col-actions">
+                        <a class="button small icon-btn" onclick="zobrazitServerDetail('{{ server.id }}')" title="Detail">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a class="button small primary" onclick="upravitServer('{{ server.id }}')" title="Upravit">
-                            <i class="fas fa-edit"></i>
+                        <a class="button small icon-btn" onclick="upravitServer('{{ server.id }}')" title="Upravit">
+                            <i class="fas fa-pen"></i>
                         </a>
-                        <a class="button small danger" onclick="smazatServer('{{ server.id }}')" title="Smazat">
+                        <a class="button small icon-btn danger" onclick="smazatServer('{{ server.id }}')" title="Smazat">
                             <i class="fas fa-trash"></i>
                         </a>
                     </td>
                 </tr>
                 {% endfor %}
+                {% if not servery %}
+                <tr><td colspan="5" class="empty-cell">Zatím žádné servery</td></tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

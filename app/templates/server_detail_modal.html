@@ -5,20 +5,27 @@
 {% block modal_content %}
 <div class="detail-content">
     <div class="detail-row">
-        <label>Název serveru:</label>
+        <label>Název serveru</label>
         <span>{{ server.nazev }}</span>
     </div>
     <div class="detail-row">
-        <label>Popis:</label>
+        <label>Popis</label>
         <span>{{ server.popis or 'Bez popisu' }}</span>
     </div>
     <div class="detail-row">
-        <label>Počet certifikátů:</label>
+        <label>Počet certifikátů</label>
         <span>{{ pocet_certifikatu }}</span>
     </div>
     <div class="detail-row">
-        <label>Vytvořeno:</label>
+        <label>Vytvořeno</label>
         <span>{{ server.vytvoreno.strftime('%d.%m.%Y %H:%M:%S') }}</span>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block modal_footer_buttons %}
+<button type="button" class="button" onclick="closeModal()">Zavřít</button>
+<button type="button" class="button primary" onclick="upravitServer('{{ server.id }}')">
+    <i class="fas fa-pen"></i> Upravit
+</button>
+{% endblock %}
