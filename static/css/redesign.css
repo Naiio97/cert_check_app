@@ -1182,3 +1182,12 @@ td.col-user { font-size: 13px; color: var(--text); }
 .button.success,
 .button.danger,
 .button.info { box-sizing: border-box; box-shadow: none; }
+
+/* Tlačítka: stejně viditelná hrana (světlý okraj na světlém pozadí je skoro neviditelný, tmavé tlačítko pak vypadá větší) */
+.button { border: 1px solid #D1D5DB; min-height: 42px; }
+.button.primary { border-color: var(--primary); }
+.button.danger { border-color: var(--danger); }
+.page-toolbar .button, .page-toolbar .search-bar { height: 42px; }
+.search-bar { border-color: #D1D5DB; }
+.button.small { min-height: 34px; height: 34px; padding: 0 12px; }
+.button.icon-btn, .button.small.icon-btn { border: none; min-height: 32px; width: 32px; height: 32px; padding: 0; }
