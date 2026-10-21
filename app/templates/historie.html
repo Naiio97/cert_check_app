@@ -6,7 +6,7 @@
 <div class="page-header">
     <div>
         <h1>Historie změn</h1>
-        <p class="page-subtitle">Přehled přidaných a smazaných certifikátů</p>
+        <p class="page-subtitle">Přehled změn certifikátů a serverů</p>
     </div>
 </div>
 
@@ -34,6 +34,12 @@
                         <span class="pill pill-warn"><span class="dot"></span>Upraveno</span>
                         {% elif log.akce == 'smazano' %}
                         <span class="pill pill-danger"><span class="dot"></span>Smazáno</span>
+                        {% elif log.akce == 'server_pridan' %}
+                        <span class="pill pill-ok"><span class="dot"></span>Server přidán</span>
+                        {% elif log.akce == 'server_upraven' %}
+                        <span class="pill pill-warn"><span class="dot"></span>Server upraven</span>
+                        {% elif log.akce == 'server_smazan' %}
+                        <span class="pill pill-danger"><span class="dot"></span>Server smazán</span>
                         {% else %}
                         <span class="pill pill-neutral"><span class="dot"></span>{{ log.akce }}</span>
                         {% endif %}

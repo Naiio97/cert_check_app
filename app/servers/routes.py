@@ -1,10 +1,15 @@
 from flask import Blueprint, request, jsonify, current_app, flash, redirect, url_for, render_template
-from app.models import Server, Certifikat
+from app.models import Server, Certifikat, AuditLog
 from app import db
 from datetime import datetime
-from app.auth import role_required
+from app.auth import role_required, current_username
 
 bp = Blueprint('servers', __name__)
+
+
+def _audit(akce, server, detail=''):
+    """Zápis do historie změn (součást stejné transakce jako samotná změna)."""
+    db.session.add(AuditLog(akce=akce, server=server, detail=detail or None, uzivatel=current_username()))
 
 @bp.route('/servery')
 def seznam_serveru():
@@ -46,6 +51,7 @@ def pridat_server():
             
             server = Server(nazev=nazev, popis=popis)
             db.session.add(server)
+            _audit('server_pridan', nazev, f'Popis: {popis}' if popis else '')
             db.session.commit()
             flash(f'Server {nazev} byl úspěšně přidán!', 'success')
             return redirect(url_for('servers.seznam_serveru'))
@@ -85,8 +91,17 @@ def upravit_server(id):
                     {'server': novy_nazev}
                 )
 
+            novy_popis = request.form.get('popis')
+            zmeny = []
+            if stary_nazev != novy_nazev:
+                zmeny.append(f'Název: {stary_nazev} → {novy_nazev}')
+            if (server.popis or '') != (novy_popis or ''):
+                zmeny.append(f'Popis: {server.popis or "—"} → {novy_popis or "—"}')
+
             server.nazev = novy_nazev
-            server.popis = request.form.get('popis')
+            server.popis = novy_popis
+            if zmeny:
+                _audit('server_upraven', novy_nazev, '; '.join(zmeny))
             
             db.session.commit()
             flash('Server byl úspěšně upraven', 'success')
@@ -106,7 +121,9 @@ def smazat_server(id):
         nazev = server.nazev
         
         # Nejdřív smažeme všechny certifikáty serveru
+        pocet = Certifikat.query.filter_by(server=server.nazev).count()
         Certifikat.query.filter_by(server=server.nazev).delete()
+        _audit('server_smazan', nazev, f'Smazáno certifikátů: {pocet}')
         
         # Pak smažeme server
         db.session.delete(server)
