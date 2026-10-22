@@ -21,6 +21,21 @@
 </div>
 
 <!-- Seznam serverů -->
+{% if not servery %}
+<!-- V prostředí zatím není žádný server -->
+<div class="table-card empty-state">
+    <div class="empty-icon"><i class="fas fa-server"></i></div>
+    <h2 class="empty-title">Zatím nebyl vytvořen žádný server</h2>
+    <p class="empty-text">V prostředí {{ current_env|upper }} zatím není zaevidovaný žádný server.
+        {% if can('editor') %}Přidejte první server, na který pak zaevidujete certifikáty.{% endif %}</p>
+    {% if can('editor') %}
+    <button type="button" onclick="pridatServer()" class="button primary">
+        <i class="fas fa-plus"></i>
+        Přidat server
+    </button>
+    {% endif %}
+</div>
+{% else %}
 <div class="table-card">
     <div class="table-container">
         <table class="servers-table">
@@ -57,13 +72,11 @@
                     </td>
                 </tr>
                 {% endfor %}
-                {% if not servery %}
-                <tr><td colspan="5" class="empty-cell">Zatím žádné servery</td></tr>
-                {% endif %}
             </tbody>
         </table>
     </div>
 </div>
+{% endif %}
 
 <!-- Modální okno -->
 <div id="serverModal" class="modal">
