@@ -1221,3 +1221,7 @@ td.col-user { font-size: 13px; color: var(--text); }
 /* Sloupec Akce: hlavička i ikony vycentrované ve sloupci (sloupec je pevně u pravého okraje) */
 .table-card th.col-actions, .table-card td.col-actions, .table-card td.actions { text-align: center; padding-left: 8px; padding-right: 8px; }
 .servers-table th.col-actions, .servers-table td.col-actions { text-align: center; }
+
+/* Žádný svislý posuvník u záložek serverů a tabulky (přesah o 1 px kvůli spodní linii záložky ho vyvolával) */
+.table-card .nav-list { overflow-y: hidden; }
+.table-card .table-container { overflow-y: hidden; }
