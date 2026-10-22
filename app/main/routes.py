@@ -46,6 +46,7 @@ def index():
         
         return render_template('index.html',
                              certifikaty=certifikaty,
+                             celkem_certifikatu=Certifikat.query.count(),
                              servery=servery_nazvy,
                              aktivni_server=aktivni_server,
                              pagination=pagination)

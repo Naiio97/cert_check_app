@@ -260,7 +260,7 @@ function updateTable(data) {
     const pagination = data.pagination || null;
 
     if (certificates.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary)">Žádné certifikáty</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">Na tomto serveru zatím není žádný certifikát</td></tr>';
     } else {
         certificates.forEach(cert => {
             const row = document.createElement('tr');

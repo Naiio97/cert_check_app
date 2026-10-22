@@ -51,6 +51,28 @@
     </form>
 </div>
 
+{% if celkem_certifikatu == 0 %}
+<!-- V prostředí zatím není žádný certifikát -->
+<div class="table-card empty-state">
+    <div class="empty-icon"><i class="fas fa-certificate"></i></div>
+    <h2 class="empty-title">Zatím nebyl vytvořen žádný certifikát</h2>
+    <p class="empty-text">V prostředí {{ current_env|upper }} zatím není zaevidovaný žádný certifikát.
+        {% if not servery %}Nejdřív vytvořte server, na který certifikát přidáte.{% elif can('editor') %}Přidejte první certifikát, nebo je naimportujte z Excelu.{% endif %}</p>
+    {% if can('editor') %}
+    {% if servery %}
+    <button type="button" onclick="pridatCertifikat()" class="button primary">
+        <i class="fas fa-plus"></i>
+        Přidat certifikát
+    </button>
+    {% else %}
+    <a href="{{ url_for('servers.seznam_serveru') }}" class="button primary">
+        <i class="fas fa-server"></i>
+        Vytvořit server
+    </a>
+    {% endif %}
+    {% endif %}
+</div>
+{% else %}
 <div class="table-card">
     <!-- Navigace serverů -->
     <div class="nav-list">
@@ -108,6 +130,9 @@
                     </td>
                 </tr>
                 {% endfor %}
+                {% if not certifikaty %}
+                <tr><td colspan="6" class="empty-cell">Na tomto serveru zatím není žádný certifikát</td></tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
@@ -136,6 +161,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Floating bulk toolbar -->
 <div id="bulkToolbar" class="bulk-toolbar" style="display:none">
