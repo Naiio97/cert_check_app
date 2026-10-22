@@ -19,6 +19,15 @@
 <form method="POST"
     action="{% if certifikat %}/evidence_certifikatu/upravit/{{ certifikat.id }}{% else %}/evidence_certifikatu/pridat{% endif %}"
     class="form-card">
+    {% if not servery %}
+    <div class="field">
+        <label for="server">Server</label>
+        <select name="server" id="server" disabled>
+            <option>Nejsou vytvořené žádné servery</option>
+        </select>
+        <p class="field-hint">Certifikát se zaeviduje na server. Nejdřív <a href="{{ url_for('servers.seznam_serveru') }}">vytvořte server</a>.</p>
+    </div>
+    {% else %}
     <div class="field">
         <label for="server">Server</label>
         <select name="server" id="server" required>
@@ -31,6 +40,7 @@
             {% endfor %}
         </select>
     </div>
+    {% endif %}
 
     <div class="field">
         <label for="cesta">Cesta</label>
@@ -61,7 +71,7 @@
 
     <div class="form-buttons">
         <a href="{{ url_for('main.index') }}" class="button">Zrušit</a>
-        <button type="submit" class="button primary">
+        <button type="submit" class="button primary" {% if not servery %}disabled{% endif %}>
             {% if certifikat %}Uložit změny{% else %}<i class="fas fa-plus"></i> Přidat certifikát{% endif %}
         </button>
     </div>

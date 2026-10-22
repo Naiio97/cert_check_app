@@ -1194,3 +1194,18 @@ td.col-user { font-size: 13px; color: var(--text); }
 
 /* Malá textová tlačítka (např. Uložit v tabulce): starý styl jim nastavoval pevnou šířku 30 px pro ikony */
 .button.small { width: auto; }
+
+/* ─── Tabulky: pevné rozvržení sloupců, Akce vždy u pravého okraje ─── */
+.table-card table { table-layout: fixed; }
+.table-card th.col-check, .table-card td.col-check { width: 56px; }
+.table-card th.col-actions, .table-card td.col-actions,
+.table-card td.actions,
+.users-table th.col-user-actions, .users-table td.col-user-actions { text-align: right; }
+.table-card td.actions { white-space: nowrap; }
+.table-card td, .table-card th { overflow-wrap: anywhere; }
+
+/* Nápověda pod polem formuláře */
+.field-hint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.field-hint a { color: var(--text); font-weight: 600; text-decoration: underline; }
+.field select:disabled { background-color: var(--bg); color: var(--muted); cursor: not-allowed; }
+.button:disabled { opacity: 0.5; cursor: not-allowed; }

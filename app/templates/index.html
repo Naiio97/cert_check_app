@@ -27,10 +27,10 @@
         Export do Excelu
     </a>
     {% if can('editor') %}
-    <a href="{{ url_for('certificates.pridat_certifikat') }}" class="button primary">
+    <button type="button" onclick="pridatCertifikat()" class="button primary">
         <i class="fas fa-plus"></i>
         Přidat certifikát
-    </a>
+    </button>
     {% endif %}
 </div>
 
@@ -180,11 +180,11 @@
     }
 
     function pridatCertifikat() {
-        fetch('/evidence_certifikatu/pridat-novy')
+        fetch('/evidence_certifikatu/get-add-form')
             .then(response => response.text())
             .then(html => {
-                document.querySelector('#modal .modal-content').innerHTML = html;
-                openModal('modal');
+                document.querySelector('#detailModal .modal-content').innerHTML = html;
+                openModal('detailModal');
             });
     }
 

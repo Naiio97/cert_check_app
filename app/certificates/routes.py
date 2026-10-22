@@ -58,6 +58,12 @@ def pridat_certifikat():
     servery = Server.query.all()
     return render_template('formular.html', certifikat=None, servery=servery)
 
+@bp.route('/get-add-form')
+@role_required('editor')
+def get_add_form():
+    servery = Server.query.order_by(Server.nazev).all()
+    return render_template('edit_modal.html', certifikat=None, servery=servery)
+
 @bp.route('/get-edit-form/<int:id>')
 @role_required('editor')
 def get_edit_form(id):
