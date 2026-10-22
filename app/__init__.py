@@ -116,6 +116,14 @@ def create_app(config_class=Config):
     # Kontrola přihlášení a rolí běží až po výběru prostředí
     app.before_request(enforce_auth)
 
+    @app.after_request
+    def no_store(response):
+        # Stránky a JSON z aplikace se nikdy necachují — po smazání nebo změně (tlačítko Zpět,
+        # přepnutí stránky) tak prohlížeč vždy načte aktuální data, ne starou kopii. Statické soubory se cachují.
+        if request.endpoint != 'static':
+            response.headers['Cache-Control'] = 'no-store'
+        return response
+
     if app.config['AUTH_ENABLED'] and app.config['SECRET_KEY'] == 'fallback-zmenit-v-produkci' and not app.debug:
         app.logger.warning('SECRET_KEY není nastaven v .env — přihlášení lokálního admina používá výchozí klíč!')
     if not app.config['AUTH_ENABLED']:

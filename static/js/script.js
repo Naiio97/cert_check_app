@@ -29,104 +29,105 @@ function upravitCertifikat(id) {
         });
 }
 
-// Funkce pro smazání certifikátu – s 10s undo
-// Funkce pro smazání certifikátu – s 10s undo
-const pendingDeletes = new Map();
+// Smazání certifikátu se provede na serveru HNED, takže všechny stránky (Končící certifikáty, Servery,
+// Historie, číslo v liště) jsou okamžitě aktuální. Tlačítko "Vrátit" certifikát vytvoří znovu podle snímku,
+// který server při smazání vrátil.
+const deletingIds = new Set();
 
 function smazatCertifikat(id) {
     id = String(id);
-    if (pendingDeletes.has(id)) return;
+    if (deletingIds.has(id)) return;
+    deletingIds.add(id);
 
-    // Find the row and cert name before hiding
-    const row = document.querySelector(`tr td.actions .button[onclick*="smazatCertifikat(${id})"], tr td.actions .button[onclick*="smazatCertifikat('${id}')"]`);
-    const tr = row ? row.closest('tr') : null;
-    const certName = tr ? (tr.children[2]?.textContent || tr.children[0]?.textContent || `#${id}`) : `#${id}`;
+    const btn = document.querySelector(`tr td.actions .button[onclick*="smazatCertifikat(${id})"], tr td.actions .button[onclick*="smazatCertifikat('${id}')"]`);
+    const tr = btn ? btn.closest('tr') : null;
+    const certName = tr ? (tr.children[3]?.textContent || `#${id}`) : `#${id}`;
 
-    // Hide row immediately
     if (tr) {
-        tr.style.transition = 'opacity 0.3s, max-height 0.3s';
-        tr.style.opacity = '0';
-        setTimeout(() => { tr.style.display = 'none'; }, 300);
+        tr.style.transition = 'opacity 0.3s';
+        tr.style.opacity = '0.4';
     }
 
-    // Build undo toast
+    fetch(`/evidence_certifikatu/smazat/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } })
+        .then(r => r.json()
+            .catch(() => ({ success: false, message: 'Neplatná odpověď serveru' }))
+            .then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok || !data.success) throw new Error(data.message || 'Smazání se nepodařilo');
+            if (tr) tr.remove();
+            refreshExpiringBadge();
+            showUndoToast(data.snapshot, certName.trim());
+        })
+        .catch(err => {
+            if (tr) tr.style.opacity = '1';
+            if (typeof showToast === 'function') showToast(err.message, 'error');
+        })
+        .finally(() => deletingIds.delete(id));
+}
+
+function showUndoToast(snapshot, certName) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast toast-warning toast-undo';
     toast.innerHTML = `
         <div class="toast-undo-body">
             <i class="fas fa-trash"></i>
-            <span>Smazáno: <strong>${certName.trim()}</strong></span>
-            <div class="toast-actions">
-                <button class="toast-btn confirm" onclick="confirmDelete(${id})">Smazat hned</button>
-                <button class="toast-btn" onclick="undoDelete(${id})">Vrátit</button>
-            </div>
+            <span>Smazáno: <strong></strong></span>
+            <div class="toast-actions"><button type="button" class="toast-btn">Vrátit</button></div>
         </div>
         <div class="toast-progress"><div class="toast-progress-bar"></div></div>
     `;
-    if (container) container.appendChild(toast);
-
-    // Start 10s countdown then actually delete
-    const timer = setTimeout(() => {
-        executeDelete(id);
-    }, 10000);
-
-    pendingDeletes.set(id, { timer, toast, tr });
+    toast.querySelector('strong').textContent = certName;
+    const remove = () => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); };
+    toast.querySelector('.toast-btn').addEventListener('click', () => {
+        clearTimeout(timer);
+        undoDelete(snapshot, remove);
+    });
+    container.appendChild(toast);
+    const timer = setTimeout(remove, 10000);
 }
 
-function executeDelete(id) {
-    id = String(id);
-    const pending = pendingDeletes.get(id);
-    if (!pending) return;
-
-    clearTimeout(pending.timer);
-    pendingDeletes.delete(id);
-
-    if (pending.toast) {
-        pending.toast.classList.add('removing');
-        setTimeout(() => pending.toast.remove(), 300);
-    }
-
-    fetch(`/evidence_certifikatu/smazat/${id}`, { method: 'POST' })
-        .then(response => {
-            if (response.ok || response.redirected) {
-                if (pending.tr) pending.tr.remove();
-                if (typeof showToast === 'function') showToast('Certifikát smazán', 'success');
+function undoDelete(snapshot, done) {
+    fetch('/evidence_certifikatu/obnovit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot)
+    })
+        .then(r => r.json())
+        .then(data => {
+            done();
+            if (data.success) {
+                if (typeof showToast === 'function') showToast('Certifikát vrácen', 'success');
+                setTimeout(() => window.location.reload(), 600);
+            } else if (typeof showToast === 'function') {
+                showToast(data.message || 'Vrácení se nepodařilo', 'error');
             }
+        })
+        .catch(() => {
+            done();
+            if (typeof showToast === 'function') showToast('Vrácení se nepodařilo', 'error');
         });
 }
 
-function confirmDelete(id) {
-    id = String(id);
-    executeDelete(id);
+// Číslo ve štítku "Končící certifikáty" v horní liště po změně dat (bez obnovení stránky)
+function refreshExpiringBadge() {
+    fetch('/evidence_certifikatu/expiring-count', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+            const link = document.querySelector('.app-nav a[href$="/dashboard"]');
+            if (!link) return;
+            let badge = link.querySelector('.nav-badge');
+            if (!d.count) { if (badge) badge.remove(); return; }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                link.appendChild(badge);
+            }
+            badge.textContent = d.count;
+        })
+        .catch(() => { });
 }
-
-function undoDelete(id) {
-    id = String(id);
-    const pending = pendingDeletes.get(id);
-    if (!pending) return;
-
-    clearTimeout(pending.timer);
-    pendingDeletes.delete(id);
-
-    // Restore the row
-    if (pending.tr) {
-        pending.tr.style.display = '';
-        setTimeout(() => pending.tr.style.opacity = '1', 10);
-    }
-    if (pending.toast) {
-        pending.toast.classList.add('removing');
-        setTimeout(() => pending.toast.remove(), 300);
-    }
-    if (typeof showToast === 'function') showToast('Smazání zrušeno', 'info');
-}
-
-// Ensure pending deletes are sent if user navigates away
-window.addEventListener('unload', () => {
-    pendingDeletes.forEach((val, id) => {
-        navigator.sendBeacon(`/evidence_certifikatu/smazat/${id}`);
-    });
-});
 
 // Funkce pro smazání celé databáze
 function smazatDB() {

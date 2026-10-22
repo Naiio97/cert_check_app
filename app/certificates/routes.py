@@ -121,11 +121,19 @@ def upravit_certifikat(id):
 @bp.route('/smazat/<int:id>', methods=['POST'])
 @role_required('admin')
 def smazat_certifikat(id):
+    ajax = request.headers.get('X-Requested-With') == 'fetch'
     try:
         certifikat = Certifikat.query.get_or_404(id)
         current_app.logger.info('Mazání certifikátu: %s ze serveru %s', certifikat.nazev, certifikat.server)
+        snapshot = {
+            'server': certifikat.server,
+            'cesta': certifikat.cesta,
+            'nazev': certifikat.nazev,
+            'expirace': certifikat.expirace.strftime('%d.%m.%Y'),
+            'poznamka': certifikat.poznamka or '',
+        }
         db.session.add(AuditLog(
-                uzivatel=current_username(),
+            uzivatel=current_username(),
             akce='smazano',
             certifikat_nazev=certifikat.nazev,
             server=certifikat.server,
@@ -133,11 +141,48 @@ def smazat_certifikat(id):
         ))
         db.session.delete(certifikat)
         db.session.commit()
+        if ajax:
+            # Smazání se provede hned (data jsou na všech stránkách okamžitě aktuální);
+            # snímek slouží jen tlačítku "Vrátit".
+            return jsonify({'success': True, 'message': 'Certifikát smazán', 'snapshot': snapshot})
         flash('Certifikát byl smazán!')
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error('Chyba při mazání certifikátu: %s', e)
+        if ajax:
+            return jsonify({'success': False, 'message': f'Chyba při mazání certifikátu: {e}'}), 500
         flash(f'Chyba při mazání certifikátu: {str(e)}')
     return redirect(url_for('main.index'))
+
+
+@bp.route('/obnovit', methods=['POST'])
+@role_required('editor')
+def obnovit_certifikat():
+    """Vrácení právě smazaného certifikátu ("Vrátit" po smazání) — vytvoří ho znovu podle snímku."""
+    data = request.get_json(silent=True) or {}
+    try:
+        server = (data.get('server') or '').strip()
+        if not Server.query.filter_by(nazev=server).first():
+            return jsonify({'success': False, 'message': f'Server {server} už neexistuje, certifikát nelze vrátit.'}), 400
+        expirace = datetime.strptime(data.get('expirace', ''), '%d.%m.%Y').date()
+        cert = Certifikat(server=server, cesta=data.get('cesta', ''), nazev=data.get('nazev', ''),
+                          expirace=expirace, poznamka=data.get('poznamka', ''))
+        db.session.add(cert)
+        db.session.flush()
+        db.session.add(AuditLog(
+            uzivatel=current_username(),
+            akce='pridano',
+            certifikat_nazev=cert.nazev,
+            server=cert.server,
+            detail=f'Obnoveno po smazání. Cesta: {cert.cesta}, Expirace: {expirace.strftime("%d.%m.%Y")}'
+        ))
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Certifikát obnoven'})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error('Chyba při obnovení certifikátu: %s', e)
+        return jsonify({'success': False, 'message': f'Chyba při obnovení: {e}'}), 400
+
 
 @bp.route('/import-excel', methods=['POST'])
 @role_required('editor')

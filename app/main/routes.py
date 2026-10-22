@@ -66,3 +66,15 @@ def detail(id):
     except Exception as e:
         current_app.logger.error('Chyba při načítání detailu: %s', e)
         return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/expiring-count')
+def expiring_count():
+    """Aktuální číslo ve štítku „Končící certifikáty“ (aktualizuje se po smazání bez obnovení stránky)."""
+    from app.models import Settings
+    try:
+        warning_days = int(Settings.get('alert_days_warning', '60'))
+        env = getattr(g, 'db_bind', 'live')
+        return jsonify({'count': len(Certifikat.fetch_expiring(env, days=warning_days))})
+    except Exception:
+        return jsonify({'count': 0})
