@@ -1209,3 +1209,11 @@ td.col-user { font-size: 13px; color: var(--text); }
 .field-hint a { color: var(--text); font-weight: 600; text-decoration: underline; }
 .field select:disabled { background-color: var(--bg); color: var(--muted); cursor: not-allowed; }
 .button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Úzké sloupce Expirace a Akce (cesta a název dostanou zbytek místa) ─── */
+.table-card .col-server { width: 140px; }
+.table-card th.col-expiry, .table-card td.col-expiry { width: 200px; }
+.table-card th.col-actions, .table-card td.col-actions { width: 136px; }
+.servers-table .col-actions { width: 136px; }
+/* ikony 32 px mají glyf uprostřed, proto menší pravý odsazení: ikony pak lícují s textem „Akce“ v hlavičce */
+.table-card td.actions { padding-right: 11px; }
