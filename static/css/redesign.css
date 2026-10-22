@@ -1217,3 +1217,7 @@ td.col-user { font-size: 13px; color: var(--text); }
 .servers-table .col-actions { width: 136px; }
 /* ikony 32 px mají glyf uprostřed, proto menší pravý odsazení: ikony pak lícují s textem „Akce“ v hlavičce */
 .table-card td.actions { padding-right: 11px; }
+
+/* Sloupec Akce: hlavička i ikony vycentrované ve sloupci (sloupec je pevně u pravého okraje) */
+.table-card th.col-actions, .table-card td.col-actions, .table-card td.actions { text-align: center; padding-left: 8px; padding-right: 8px; }
+.servers-table th.col-actions, .servers-table td.col-actions { text-align: center; }
